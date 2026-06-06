@@ -1,0 +1,76 @@
+
+_parse_dob()
+  ✅ PASS  MM/DD/YYYY
+  ✅ PASS  M/D/YYYY
+  ✅ PASS  YYYY-MM-DD
+  ✅ PASS  MM-DD-YYYY
+  ✅ PASS  None input
+  ✅ PASS  Empty string
+  ✅ PASS  Garbage string
+
+_is_senior() — turns 65+ during tax year 2025
+  ✅ PASS  Born 1960 → turns 65 (senior)
+  ✅ PASS  Born 1959 → turns 66 (senior)
+  ✅ PASS  Born 1940 → turns 85 (senior)
+  ✅ PASS  Born 1961 → turns 64 (not)
+  ✅ PASS  Born 1971 → turns 54 (not)
+  ✅ PASS  Born 1974 → turns 51 (not)
+  ✅ PASS  None input
+
+_determine_filing_status() — tier 1: explicit statement
+  ✅ PASS  Explicit MFJ
+  ✅ PASS  Explicit Single
+  ✅ PASS  Explicit HOH
+  ✅ PASS  Explicit MFS
+  ✅ PASS  Explicit takes priority over names
+
+_determine_filing_status() — tier 2: inferred MFJ from two names
+  ✅ PASS  Two names across docs → MFJ inferred
+  ✅ PASS  Two names on one doc → MFJ inferred
+  ✅ PASS  Spouse name field → MFJ inferred
+
+_determine_filing_status() — tier 3: default single
+  ✅ PASS  One name → default Single
+  ✅ PASS  No names → default Single
+  ✅ PASS  Empty extracted → default Single
+
+_interest_already_covered() — dedup logic
+  ✅ PASS  Exact match → suppress
+  ✅ PASS  Partial match (notes substring of 1099) → suppress
+  ✅ PASS  Partial match (1099 substring of notes) → suppress
+  ✅ PASS  Case-insensitive match → suppress
+  ✅ PASS  Different institution → write through
+  ✅ PASS  None payer → write through
+  ✅ PASS  Empty payer → write through
+  ✅ PASS  No 1099-INTs in packet → write through
+  ✅ PASS  1099-INT not in packet (W-2 only) → write through
+
+Year mismatch detection
+  ✅ PASS  One 2024 doc detected as mismatch
+  ✅ PASS  Mismatched doc is 1099-INT
+  ✅ PASS  Mismatched doc has year 2024
+  ✅ PASS  All 2025 docs → no mismatch
+  ✅ PASS  Null year treated as acceptable
+
+Form type normalization (client_notes variants)
+  ✅ PASS  'client_notes' → 'client_notes'
+  ✅ PASS  'Client Notes' → 'client_notes'
+  ✅ PASS  'CLIENT ORGANIZER' → 'client_notes'
+  ✅ PASS  'Client Organizer' → 'client_notes'
+  ✅ PASS  'tax organizer' → 'client_notes'
+  ✅ PASS  'organizer' → 'client_notes'
+  ✅ PASS  'notes' → 'client_notes'
+  ✅ PASS  'W-2' → 'W-2'
+  ✅ PASS  '1099-INT' → '1099-INT'
+
+W-2 false positive flag filtering
+  ✅ PASS  Both false positives stripped
+  ✅ PASS  Both real errors kept
+  ✅ PASS  Mixed: 1 stripped, 3 kept
+  ✅ PASS  Real SS error present
+  ✅ PASS  Year mismatch present
+  ✅ PASS  401k flag present
+  ✅ PASS  False positive absent
+
+=======================================================
+ALL TESTS PASSED — 55/55

@@ -1,0 +1,47 @@
+{
+  "_comment": "Expected DoubleCheck cells — Whitfield MFJ 6-doc packet. Robert (Vulcan) row 3, Linda (Shelby Co) row 4.",
+  "sheets": {
+    "1040": {
+      "H3": true,
+      "H2": false,
+      "H4": false,
+
+      "_comment_w2_robert": "Row 3 — Vulcan Steel Works (Robert)",
+      "B3": 74200.0,
+      "C3": 74200.0,
+      "D3": 8904.0,
+      "E3": 2226.0,
+      "F3": 5676.3,
+
+      "_comment_w2_linda": "Row 4 — Shelby County Board of Education (Linda)",
+      "B4": 48500.0,
+      "C4": 48500.0,
+      "D4": 5820.0,
+      "E4": 1455.0,
+      "F4": 3710.25,
+
+      "_comment_interest": "B11 — additional interest from Hoover Federal CU (no 1099-INT in packet)",
+      "B11": 385.0,
+
+      "_comment_1099div": "1099-DIV — Charles Schwab",
+      "B16": 2180.0,
+      "B60": 28.0,
+
+      "_comment_1099nec": "1099-NEC — Ridgeline Analytics",
+      "G3": 12750.0,
+
+      "_comment_deductions": "From client notes",
+      "K26": 1800.0,
+      "K27": 275.0,
+      "K23": 337.0
+    },
+    "SCH D": {
+      "_comment": "1099-B (TD Ameritrade) totals + 1099-DIV cap gain distributions",
+      "B3":  8900.0,
+      "C3":  7400.0,
+      "B18": 19500.0,
+      "C18": 14200.0,
+      "E29": 320.0
+    }
+  }
+}

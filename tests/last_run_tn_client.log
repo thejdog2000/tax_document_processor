@@ -1,0 +1,24 @@
+
+PrepDesk Test Suite — tn_client
+=======================================================
+
+Mode: Unit (golden fixtures, no API)
+
+  DoubleCheck
+    Sheet: 1040
+      ✅ PASS  H3 = True
+      ✅ PASS  B3 = 82000
+      ✅ PASS  C3 = 82000
+      ✅ PASS  D3 = 9840
+      ✅ PASS  E3 = 0
+      ✅ PASS  F3 = 6273
+      ✅ PASS  B4 = 61000
+      ✅ PASS  C4 = 61000
+      ✅ PASS  D4 = 7320
+      ✅ PASS  E4 = 0
+      ✅ PASS  F4 = 4666.5
+      ✅ PASS  K26 = 500
+      ✅ PASS  K23 = 280
+
+=======================================================
+ALL TESTS PASSED — 13/13

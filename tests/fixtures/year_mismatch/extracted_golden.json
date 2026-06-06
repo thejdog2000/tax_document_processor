@@ -1,0 +1,47 @@
+[
+  {
+    "path": "__PLACEHOLDER__/W-2_Employer_2025.pdf",
+    "data": {
+      "form_type": "W-2", "tax_year": "2025",
+      "taxpayer_name": "Test Mismatch", "spouse_name": null,
+      "all_names": ["Test Mismatch"],
+      "payer_name": "Acme Corp", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {"box_1": 50000.0, "box_2": 6000.0, "box_16": 50000.0, "box_17": 1500.0},
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-INT_OldBank_2024.pdf",
+    "data": {
+      "form_type": "1099-INT", "tax_year": "2024",
+      "taxpayer_name": "Test Mismatch", "spouse_name": null,
+      "all_names": ["Test Mismatch"],
+      "payer_name": "Old Bank NA", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {"box_1": 850.0, "box_4": 0.0},
+      "validation_flags": ["TAX YEAR MISMATCH: document is 2024, expected 2025"],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/client_notes.pdf",
+    "data": {
+      "form_type": "client_notes", "tax_year": "2025",
+      "taxpayer_name": "Test Mismatch", "spouse_name": null,
+      "all_names": ["Test Mismatch"],
+      "payer_name": "Mismatch", "state": "AL",
+      "filing_status": "Single", "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {}, "validation_flags": [], "notes": ""
+    }
+  }
+]

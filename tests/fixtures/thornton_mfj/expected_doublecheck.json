@@ -1,0 +1,53 @@
+{
+  "_comment": "Expected cell values for 2025_Tax_Return_Double_Check.xlsx — Thornton MFJ 8-doc packet",
+  "sheets": {
+    "1040": {
+      "_comment_filing_status": "MFJ — H3=True, all others False",
+      "H3": true,
+      "H2": false,
+      "H4": false,
+      "H5": false,
+
+      "_comment_w2_bluestar": "Row 3 — BlueStar Industries (James)",
+      "B3": 68500.0,
+      "C3": 68500.0,
+      "D3": 8220.0,
+      "E3": 2055.0,
+      "F3": 5584.5,
+
+      "_comment_w2_pelham": "Row 4 — Pelham Medical Group (Patricia)",
+      "B4": 52000.0,
+      "C4": 52000.0,
+      "D4": 6240.0,
+      "E4": 1560.0,
+      "F4": 4207.5,
+
+      "_comment_1099int": "Row 11 — First National Bank interest",
+      "B11": 1250.0,
+
+      "_comment_1099div": "Row 16 — Vanguard dividends",
+      "B16": 3245.0,
+
+      "_comment_1099nec": "Row — Southside NEC income",
+      "G3": 8500.0,
+
+      "_comment_1099div_foreign": "Foreign tax from 1099-DIV box 7",
+      "B60": 45.0,
+
+      "_comment_deductions": "Deductions from 1098 and client notes",
+      "K25": 9450.0,
+      "K26": 2400.0,
+      "K27": 350.0,
+      "K23": 333.0,
+      "O21": 4850.0
+    },
+    "SCH D": {
+      "_comment": "1099-B totals + 1099-DIV cap gain distributions",
+      "B3":  12500.0,
+      "C3":  10200.0,
+      "B18": 25800.0,
+      "C18": 18600.0,
+      "E29": 450.0
+    }
+  }
+}

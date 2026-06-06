@@ -1,0 +1,113 @@
+[
+  {
+    "path": "__PLACEHOLDER__/XK7M2P.pdf",
+    "data": {
+      "form_type": "W-2", "tax_year": "2025",
+      "taxpayer_name": "WHITFIELD, ROBERT D", "spouse_name": null,
+      "all_names": ["WHITFIELD, ROBERT D"],
+      "payer_name": "Vulcan Steel Works Inc", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 74200.0, "box_2": 8904.0,
+        "box_3": 74200.0, "box_4": 4600.4,
+        "box_5": 74200.0, "box_6": 1075.9,
+        "box_12_code": "D", "box_12_amount": 5000.0,
+        "box_15": "AL", "box_16": 74200.0, "box_17": 2226.0
+      },
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/QR9TN4.pdf",
+    "data": {
+      "form_type": "W-2", "tax_year": "2025",
+      "taxpayer_name": "WHITFIELD, LINDA M", "spouse_name": null,
+      "all_names": ["WHITFIELD, LINDA M"],
+      "payer_name": "Shelby County Board of Education", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 48500.0, "box_2": 5820.0,
+        "box_3": 48500.0, "box_4": 3007.0,
+        "box_5": 48500.0, "box_6": 703.25,
+        "box_12_code": "D", "box_12_amount": 2500.0,
+        "box_13_retirement": true,
+        "box_15": "AL", "box_16": 48500.0, "box_17": 1455.0
+      },
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/ZH5CJ1.pdf",
+    "data": {
+      "form_type": "1099-DIV", "tax_year": "2025",
+      "taxpayer_name": "Robert D Whitfield", "spouse_name": "Linda M Whitfield",
+      "all_names": ["Robert D Whitfield", "Linda M Whitfield"],
+      "payer_name": "Charles Schwab & Co., Inc.", "state": "AL",
+      "filing_status": "MFJ", "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1a": 2180.0, "box_1b": 1840.0, "box_2a": 320.0,
+        "box_4": 0.0, "box_7": 28.0
+      },
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/YN6DK3.pdf",
+    "data": {
+      "form_type": "1099-B", "tax_year": "2025",
+      "taxpayer_name": "Robert D Whitfield", "spouse_name": "Linda M Whitfield",
+      "all_names": ["Robert D Whitfield", "Linda M Whitfield"],
+      "payer_name": "TD Ameritrade, Inc.", "state": null,
+      "filing_status": "MFJ", "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1d_st": 8900.0, "box_1e_st": 7400.0,
+        "box_1d_lt": 19500.0, "box_1e_lt": 14200.0,
+        "box_4": 0.0
+      },
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/BF3LW8.pdf",
+    "data": {
+      "form_type": "1099-NEC", "tax_year": "2025",
+      "taxpayer_name": "Robert D Whitfield", "spouse_name": null,
+      "all_names": ["Robert D Whitfield"],
+      "payer_name": "Ridgeline Analytics LLC", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": { "box_1": 12750.0, "box_4": 0.0 },
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/MP4VX7.pdf",
+    "data": {
+      "form_type": "client_notes", "tax_year": "2025",
+      "taxpayer_name": "Robert Whitfield", "spouse_name": "Linda Whitfield",
+      "all_names": ["Robert Whitfield", "Linda Whitfield"],
+      "payer_name": "Whitfield", "state": "AL",
+      "filing_status": "MFJ",
+      "charity_cash": 1800.0, "charity_noncash": 275.0,
+      "medical_expenses": null, "car_tags": 337.0,
+      "taxpayer_dob": "04/22/1971", "spouse_dob": "09/14/1974",
+      "additional_interest": 385.0,
+      "additional_interest_payer": "Hoover Federal Credit Union",
+      "boxes": {}, "validation_flags": [], "notes": ""
+    }
+  }
+]

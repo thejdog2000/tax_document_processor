@@ -1,0 +1,66 @@
+{
+  "_comment": "Expected cell values for 25_1040.xlsx — Thornton MFJ 8-doc packet. Column D = payer #1, E = payer #2.",
+  "sheets": {
+    "1040": {
+      "_comment": "Header info and filing status",
+      "B11": "Thornton, James",
+      "F22": "X",
+      "F20": "",
+      "F24": "",
+      "AB20": "",
+      "_comment_dob": "Default age-40 DOB (01/01/1985) — no DOB in test packet",
+      "AX15": 1985,
+      "AY15": 1,
+      "AZ15": 1,
+      "AX17": 1985,
+      "AY17": 1,
+      "AZ17": 1
+    },
+    "W-2s": {
+      "_comment": "Col D = BlueStar (James), Col E = Pelham Medical (Patricia)",
+      "D3": 68500.0,
+      "D4": 8220.0,
+      "D5": 73000.0,
+      "D6": 4526.0,
+      "D7": 73000.0,
+      "D8": 1058.5,
+      "E3": 52000.0,
+      "E4": 6240.0,
+      "E5": 55000.0,
+      "E6": 3410.0,
+      "E7": 55000.0,
+      "E8": 797.5
+    },
+    "1099-INT": {
+      "_comment": "Col D = First National Bank",
+      "D6":  1250.0,
+      "D10": 0.0
+    },
+    "1099-DIV": {
+      "_comment": "Col D = Vanguard Brokerage",
+      "D6":  3245.0,
+      "D7":  2890.0,
+      "D8":  450.0,
+      "D13": 0.0,
+      "D16": 45.0
+    },
+    "1099-NEC": {
+      "_comment": "Col D = Southside Consulting",
+      "D6": 8500.0,
+      "D9": 0.0
+    },
+    "Sch. D": {
+      "_comment": "1099-B totals — Line 1a (ST) and Line 8a (LT)",
+      "I17": 12500.0,
+      "K17": 10200.0,
+      "I35": 25800.0,
+      "K35": 18600.0
+    },
+    "Sch. A": {
+      "_comment": "Supplemental fields from client notes",
+      "R16": 4850.0,
+      "N52": 2400.0,
+      "N54": 350.0
+    }
+  }
+}

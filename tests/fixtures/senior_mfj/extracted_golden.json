@@ -1,0 +1,52 @@
+[
+  {
+    "path": "__PLACEHOLDER__/1099-R_Pension_2025.pdf",
+    "data": {
+      "form_type": "1099-R", "tax_year": "2025",
+      "taxpayer_name": "Harold Senior", "spouse_name": "Dorothy Senior",
+      "all_names": ["Harold Senior", "Dorothy Senior"],
+      "payer_name": "Alabama Teachers Retirement", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 28400.0, "box_2a": 28400.0,
+        "box_4": 2840.0, "box_7": "7"
+      },
+      "validation_flags": [], "notes": "Distribution code 7 — normal distribution."
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-INT_SeniorBank_2025.pdf",
+    "data": {
+      "form_type": "1099-INT", "tax_year": "2025",
+      "taxpayer_name": "Harold Senior", "spouse_name": null,
+      "all_names": ["Harold Senior"],
+      "payer_name": "Pelham Savings Bank", "state": "AL",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {"box_1": 1640.0, "box_4": 0.0},
+      "validation_flags": [], "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/client_notes_Senior_2025.pdf",
+    "data": {
+      "form_type": "client_notes", "tax_year": "2025",
+      "taxpayer_name": "Harold Senior", "spouse_name": "Dorothy Senior",
+      "all_names": ["Harold Senior", "Dorothy Senior"],
+      "payer_name": "Senior", "state": "AL",
+      "filing_status": "MFJ",
+      "charity_cash": 1200.0, "charity_noncash": null,
+      "medical_expenses": 7800.0, "car_tags": 210.0,
+      "taxpayer_dob": "03/15/1951",
+      "spouse_dob": "07/22/1955",
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {}, "validation_flags": [],
+      "notes": "Harold born 1951 (age 74). Dorothy born 1955 (age 70). Both are seniors."
+    }
+  }
+]

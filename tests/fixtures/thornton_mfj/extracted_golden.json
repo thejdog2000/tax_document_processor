@@ -1,0 +1,228 @@
+[
+  {
+    "path": "__PLACEHOLDER__/W-2_BlueStar_2025.pdf",
+    "data": {
+      "form_type": "W-2",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": null,
+      "all_names": ["James R Thornton"],
+      "payer_name": "BlueStar Industries LLC",
+      "state": "AL",
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 68500.00,
+        "box_2": 8220.00,
+        "box_3": 73000.00,
+        "box_4": 4526.00,
+        "box_5": 73000.00,
+        "box_6": 1058.50,
+        "box_12_code": "D",
+        "box_12_amount": 4500.00,
+        "box_15": "AL",
+        "box_16": 68500.00,
+        "box_17": 2055.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/W-2_PelhamMedical_2025.pdf",
+    "data": {
+      "form_type": "W-2",
+      "tax_year": "2025",
+      "taxpayer_name": "Patricia A Thornton",
+      "spouse_name": null,
+      "all_names": ["Patricia A Thornton"],
+      "payer_name": "Pelham Medical Group PC",
+      "state": "AL",
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 52000.00,
+        "box_2": 6240.00,
+        "box_3": 55000.00,
+        "box_4": 3410.00,
+        "box_5": 55000.00,
+        "box_6": 797.50,
+        "box_12_code": "D",
+        "box_12_amount": 3000.00,
+        "box_15": "AL",
+        "box_16": 52000.00,
+        "box_17": 1560.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-INT_FirstNationalBank_2025.pdf",
+    "data": {
+      "form_type": "1099-INT",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": "Patricia A Thornton",
+      "all_names": ["James R Thornton", "Patricia A Thornton"],
+      "payer_name": "First National Bank of Alabama",
+      "state": "AL",
+      "filing_status": "MFJ",
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 1250.00,
+        "box_4": 0.00,
+        "box_8": null
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-DIV_VanguardBrokerage_2025.pdf",
+    "data": {
+      "form_type": "1099-DIV",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": "Patricia A Thornton",
+      "all_names": ["James R Thornton", "Patricia A Thornton"],
+      "payer_name": "Vanguard Brokerage Services",
+      "state": null,
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1a": 3245.00,
+        "box_1b": 2890.00,
+        "box_2a": 450.00,
+        "box_4": 0.00,
+        "box_7": 45.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-B_FidelityInvestments_2025.pdf",
+    "data": {
+      "form_type": "1099-B",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": null,
+      "all_names": ["James R Thornton"],
+      "payer_name": "Fidelity Investments",
+      "state": null,
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1d": 38300.00,
+        "box_1e": 28800.00,
+        "box_1d_st": 12500.00,
+        "box_1e_st": 10200.00,
+        "box_1d_lt": 25800.00,
+        "box_1e_lt": 18600.00,
+        "box_2": null,
+        "box_4": 0.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1099-NEC_SouthsideConsulting_2025.pdf",
+    "data": {
+      "form_type": "1099-NEC",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": null,
+      "all_names": ["James R Thornton"],
+      "payer_name": "Southside Consulting Group LLC",
+      "state": null,
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 8500.00,
+        "box_4": 0.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/1098_FirstNationalBank_2025.pdf",
+    "data": {
+      "form_type": "1098",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": "Patricia A Thornton",
+      "all_names": ["James R Thornton", "Patricia A Thornton"],
+      "payer_name": "First National Bank of Alabama",
+      "state": null,
+      "filing_status": null,
+      "charity_cash": null,
+      "charity_noncash": null,
+      "medical_expenses": null,
+      "car_tags": null,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 9450.00,
+        "box_2": 185000.00,
+        "box_5": 0.00
+      },
+      "validation_flags": [],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/Client_Notes_Thornton_2025.pdf",
+    "data": {
+      "form_type": "client_notes",
+      "tax_year": "2025",
+      "taxpayer_name": "James R Thornton",
+      "spouse_name": "Patricia A Thornton",
+      "all_names": ["James R Thornton", "Patricia A Thornton"],
+      "payer_name": "Thornton Family",
+      "state": "AL",
+      "filing_status": "MFJ",
+      "charity_cash": 2400.00,
+      "charity_noncash": 350.00,
+      "medical_expenses": 4850.00,
+      "car_tags": 333.00,
+      "additional_interest": null,
+      "additional_interest_payer": null,
+      "boxes": {},
+      "validation_flags": [],
+      "notes": "MFJ. Address: 142 Maple Ridge Drive, Pelham, AL 35124."
+    }
+  }
+]

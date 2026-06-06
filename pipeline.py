@@ -75,6 +75,8 @@ Supplemental fields (populate from client notes or any source — null if not fo
 - car_tags: total vehicle registration / car tag fees paid
 - taxpayer_dob: taxpayer date of birth (MM/DD/YYYY format if found)
 - spouse_dob: spouse date of birth (MM/DD/YYYY format if found)
+- additional_interest: interest income reported in notes not covered by a separate 1099-INT (e.g. savings account, money market) — total dollar amount
+- additional_interest_payer: institution name for the additional interest if mentioned
 
 Box extraction rules by form type:
 
@@ -191,6 +193,7 @@ class TaxPipeline:
                 ft = (data.get("form_type") or "").lower().strip()
                 if any(x in ft for x in ("client", "organizer", "notes")):
                     data["form_type"] = "client_notes"
+                    data["payer_name"] = last_name  # Use client name, not inferred payer
 
                 # Strip false-positive W-2 math flags (expected == got)
                 flags = data.get("validation_flags") or []
@@ -486,7 +489,10 @@ class TaxPipeline:
             text = response.content[0].text.strip()
             # Strip markdown code fences if model adds them
             text = text.replace("```json", "").replace("```", "").strip()
-            return json.loads(text), elapsed
+            # Use raw_decode so extra content after the first JSON object
+            # (e.g. two objects returned back-to-back) doesn't cause a failure
+            obj, _ = json.JSONDecoder().raw_decode(text)
+            return obj, elapsed
         except json.JSONDecodeError as e:
             self.log(f"    ❌ JSON parse error: {e}")
             return None, time.time() - t0
@@ -565,6 +571,21 @@ class TaxPipeline:
                     if st_basis:    ws_schd["K17"] = st_basis      # Line 1a basis
                     if lt_proceeds: ws_schd["I35"] = lt_proceeds   # Line 8a proceeds
                     if lt_basis:    ws_schd["K35"] = lt_basis      # Line 8a basis
+                continue
+
+            if ft == "client_notes":
+                # Write any interest income from notes (savings accounts, etc.)
+                # to the next available column in the 1099-INT sheet.
+                # Skip if payer already has a 1099-INT in the packet (avoid double-count).
+                add_interest = _f(data.get("additional_interest"))
+                add_payer = data.get("additional_interest_payer")
+                if add_interest and not self._interest_already_covered(add_payer):
+                    int_sheet = self._sheet_for(wb, "1099-INT")
+                    if int_sheet and int_sheet in wb.sheetnames:
+                        ws_int = wb[int_sheet]
+                        col = next_col.get(int_sheet, 4)
+                        ws_int.cell(row=6, column=col).value = add_interest
+                        next_col[int_sheet] = col + 1
                 continue
 
             if not sheet_name or sheet_name not in wb.sheetnames:
@@ -760,6 +781,15 @@ class TaxPipeline:
                 if _f(boxes.get("box_5")) > 0:
                     ws["K22"] = _f(boxes.get("box_5"))  # Property taxes
 
+        # ── Interest from client notes (savings accounts not on a 1099-INT) ───
+        # Skipped if payer matches an existing 1099-INT document (avoid double-count).
+        for item in self.extracted:
+            if item["data"].get("form_type") == "client_notes":
+                add_interest = _f(item["data"].get("additional_interest"))
+                add_payer = item["data"].get("additional_interest_payer")
+                if add_interest and not self._interest_already_covered(add_payer):
+                    ws["B11"] = _f(ws["B11"].value) + add_interest
+
         # ── Aggregate supplemental fields ─────────────────────────────────────
         total_medical = sum(_f(item["data"].get("medical_expenses")) for item in self.extracted)
         total_charity_cash = sum(_f(item["data"].get("charity_cash")) for item in self.extracted)
@@ -839,6 +869,24 @@ class TaxPipeline:
         (out_dir / "client_request.txt").write_text("\n".join(req_lines), encoding="utf-8")
 
     # ── Private: helpers ──────────────────────────────────────────────────────
+    def _interest_already_covered(self, payer_name) -> bool:
+        """
+        Returns True if payer_name loosely matches an already-extracted 1099-INT
+        document, meaning the interest is already accounted for and should not be
+        double-counted from client notes.
+        Normalizes both names to alphanumeric lowercase for comparison.
+        """
+        if not payer_name:
+            return False
+        norm = lambda s: "".join(c.lower() for c in str(s) if c.isalnum())
+        p = norm(payer_name)
+        for item in self.extracted:
+            if item["data"].get("form_type") == "1099-INT":
+                existing = norm(item["data"].get("payer_name") or "")
+                if existing and (p in existing or existing in p):
+                    return True
+        return False
+
     def _form_sort_key(self, form_type):
         try:
             return FORM_ORDER.index(form_type)

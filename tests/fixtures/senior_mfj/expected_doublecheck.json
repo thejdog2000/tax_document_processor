@@ -1,0 +1,25 @@
+{
+  "_comment": "Senior MFJ — both spouses 65+. DoubleCheck must use H7 (Senior MFJ), NOT H3 (standard MFJ).",
+  "sheets": {
+    "1040": {
+      "_comment_filing": "H7=True (Senior MFJ). H3 must be False.",
+      "H7": true,
+      "H3": false,
+      "H2": false,
+      "H6": false,
+      "H8": false,
+
+      "_comment_pension": "1099-R code 7 → pension row B22/C22",
+      "B22": 28400.0,
+      "C22": 2840.0,
+
+      "_comment_interest": "1099-INT",
+      "B11": 1640.0,
+
+      "_comment_supplemental": "From client notes",
+      "K26": 1200.0,
+      "O21": 7800.0,
+      "K23": 210.0
+    }
+  }
+}

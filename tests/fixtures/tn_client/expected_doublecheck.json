@@ -1,0 +1,25 @@
+{
+  "_comment": "TN client — all AL WH cells (column E) must be $0 regardless of what W-2 box_17 says.",
+  "sheets": {
+    "1040": {
+      "H3": true,
+
+      "_comment_w2_james": "Row 3 — Nashville Manufacturing (James). E3 forced to $0.",
+      "B3": 82000.0,
+      "C3": 82000.0,
+      "D3": 9840.0,
+      "E3": 0.0,
+      "F3": 6273.0,
+
+      "_comment_w2_carol": "Row 4 — Murfreesboro Hospital (Carol). E4 forced to $0.",
+      "B4": 61000.0,
+      "C4": 61000.0,
+      "D4": 7320.0,
+      "E4": 0.0,
+      "F4": 4666.5,
+
+      "K26": 500.0,
+      "K23": 280.0
+    }
+  }
+}

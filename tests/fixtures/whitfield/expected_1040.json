@@ -1,0 +1,47 @@
+{
+  "_comment": "Expected Glenn Reeves cells — Whitfield MFJ. Real DOBs used (Robert 04/22/1971, Linda 09/14/1974).",
+  "sheets": {
+    "1040": {
+      "B11": "Whitfield",
+      "F22": "X",
+      "F20": "",
+      "F24": "",
+      "AB20": "",
+      "_comment_dob": "Real DOBs from client notes",
+      "AX15": 1971, "AY15": 4,  "AZ15": 22,
+      "AX17": 1974, "AY17": 9,  "AZ17": 14
+    },
+    "W-2s": {
+      "_comment": "Col D = Vulcan Steel (Robert), Col E = Shelby County (Linda)",
+      "D3": 74200.0, "D4": 8904.0,  "D5": 74200.0,
+      "D6": 4600.4,  "D7": 74200.0, "D8": 1075.9,
+      "E3": 48500.0, "E4": 5820.0,  "E5": 48500.0,
+      "E6": 3007.0,  "E7": 48500.0, "E8": 703.25
+    },
+    "1099-INT": {
+      "_comment": "Additional interest from Hoover Federal CU (no 1099-INT issued — under $10 threshold)",
+      "D6": 385.0
+    },
+    "1099-DIV": {
+      "_comment": "Col D = Charles Schwab",
+      "D6":  2180.0,
+      "D7":  1840.0,
+      "D8":  320.0,
+      "D13": 0.0,
+      "D16": 28.0
+    },
+    "1099-NEC": {
+      "_comment": "Col D = Ridgeline Analytics",
+      "D6": 12750.0,
+      "D9": 0.0
+    },
+    "Sch. D": {
+      "I17": 8900.0,  "K17": 7400.0,
+      "I35": 19500.0, "K35": 14200.0
+    },
+    "Sch. A": {
+      "N52": 1800.0,
+      "N54": 275.0
+    }
+  }
+}

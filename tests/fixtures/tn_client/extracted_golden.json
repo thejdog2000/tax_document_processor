@@ -1,0 +1,60 @@
+[
+  {
+    "path": "__PLACEHOLDER__/W-2_NashvilleMfg_2025.pdf",
+    "data": {
+      "form_type": "W-2", "tax_year": "2025",
+      "taxpayer_name": "James Nashville", "spouse_name": "Carol Nashville",
+      "all_names": ["James Nashville", "Carol Nashville"],
+      "payer_name": "Nashville Manufacturing LLC", "state": "TN",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 82000.0, "box_2": 9840.0,
+        "box_3": 82000.0, "box_4": 5084.0,
+        "box_5": 82000.0, "box_6": 1189.0,
+        "box_15": "TN",
+        "box_16": 82000.0, "box_17": 1800.0
+      },
+      "validation_flags": ["TN client shows state withholding — should be $0"],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/W-2_MurfreesboroHosp_2025.pdf",
+    "data": {
+      "form_type": "W-2", "tax_year": "2025",
+      "taxpayer_name": "Carol Nashville", "spouse_name": null,
+      "all_names": ["Carol Nashville"],
+      "payer_name": "Murfreesboro Hospital Group", "state": "TN",
+      "filing_status": null, "charity_cash": null, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": null,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {
+        "box_1": 61000.0, "box_2": 7320.0,
+        "box_3": 61000.0, "box_4": 3782.0,
+        "box_5": 61000.0, "box_6": 884.5,
+        "box_15": "TN",
+        "box_16": 61000.0, "box_17": 950.0
+      },
+      "validation_flags": ["TN client shows state withholding — should be $0"],
+      "notes": ""
+    }
+  },
+  {
+    "path": "__PLACEHOLDER__/client_notes_Nashville_2025.pdf",
+    "data": {
+      "form_type": "client_notes", "tax_year": "2025",
+      "taxpayer_name": "James Nashville", "spouse_name": "Carol Nashville",
+      "all_names": ["James Nashville", "Carol Nashville"],
+      "payer_name": "Nashville", "state": "TN",
+      "filing_status": "MFJ", "charity_cash": 500.0, "charity_noncash": null,
+      "medical_expenses": null, "car_tags": 280.0,
+      "taxpayer_dob": null, "spouse_dob": null,
+      "additional_interest": null, "additional_interest_payer": null,
+      "boxes": {}, "validation_flags": [], "notes": "Both employed in TN. No AL income."
+    }
+  }
+]

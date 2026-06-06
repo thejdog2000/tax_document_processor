@@ -1,0 +1,17 @@
+
+PrepDesk Test Suite — year_mismatch
+=======================================================
+
+Mode: Unit (golden fixtures, no API)
+
+  Rejection flow
+    ✅ PASS  Mismatched docs detected
+    ✅ PASS  Detected 1 mismatch(es)
+    ✅ PASS  rejection_log.txt created
+    ✅ PASS  client_request.txt created
+    ✅ PASS  Rejection log contains 'HARD STOP'
+    ✅ PASS  Rejection log names mismatched doc
+    ✅ PASS  No Excel files written (hard stop respected)
+
+=======================================================
+ALL TESTS PASSED — 7/7
