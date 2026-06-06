@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.spec.bak
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# macOS
+.DS_Store
+*.xattr
+
+# PyInstaller output
+dist/
+build/
+
+# App config (contains API key)
+~/.tax_processor/
+
+# Client output (PII — never commit)
+output/
+outputs/
+*.zip
+
+# Editor
+.vscode/
+.idea/
+*.swp
