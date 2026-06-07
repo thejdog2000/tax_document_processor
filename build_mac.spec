@@ -12,7 +12,8 @@ a = Analysis(
         ('2025_Tax_Return_Double_Check.xlsx', '.'),
     ],
     hiddenimports=[
-        'anthropic',
+        'boto3',
+        'botocore',
         'openpyxl',
         'tkinterdnd2',
     ],

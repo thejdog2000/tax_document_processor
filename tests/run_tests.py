@@ -6,7 +6,7 @@ Unit mode  — replays golden extraction fixtures through the Excel population l
              No API key or PDF files required. Fast.
 
 Integration mode — runs the full pipeline against real PDFs and validates output.
-                   Requires a configured API key and PDF files in fixtures/*/inputs/.
+                   Requires AWS Bedrock credentials and PDF files in fixtures/*/inputs/.
 
 Validate mode — validates existing output Excel files without re-running the pipeline.
 
@@ -309,7 +309,7 @@ def run_integration_test(fixture_dir: Path) -> tuple[int, int]:
     """
     Run the full pipeline against real PDFs in fixture_dir/inputs/,
     then validate output against expected JSON.
-    Requires a valid API key in ~/.tax_processor/config.json.
+    Requires valid AWS Bedrock credentials from the standard AWS chain.
     """
     import json as _json
 
@@ -321,13 +321,11 @@ def run_integration_test(fixture_dir: Path) -> tuple[int, int]:
     with open(config_path) as f:
         config = _json.load(f)
 
-    api_key            = config.get("api_key", "")
     template_1040      = config.get("template_1040", "")
     template_doublecheck = config.get("template_doublecheck", "")
-
-    if not api_key:
-        print(f"  {fail_str()}  No API key in config")
-        return 0, 1
+    aws_region         = config.get("aws_region", "us-east-1")
+    aws_profile        = config.get("aws_profile", "")
+    bedrock_model_id   = config.get("bedrock_model_id", "")
 
     inputs_dir = fixture_dir / "inputs"
     pdf_paths = sorted(inputs_dir.glob("*.pdf"))
@@ -340,11 +338,14 @@ def run_integration_test(fixture_dir: Path) -> tuple[int, int]:
 
     out_folder = tempfile.mkdtemp()
     pipeline = TaxPipeline(
-        api_key=api_key,
+        api_key="",
         template_1040=template_1040 or str(PROJECT_DIR / "25_1040.xlsx"),
         template_doublecheck=template_doublecheck or str(PROJECT_DIR / "2025_Tax_Return_Double_Check.xlsx"),
         output_folder=out_folder,
         log_callback=lambda msg: print(f"  {msg}"),
+        aws_region=aws_region,
+        aws_profile=aws_profile,
+        bedrock_model_id=bedrock_model_id,
     )
 
     try:

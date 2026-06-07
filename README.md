@@ -2,8 +2,8 @@
 
 ## What This Is
 A desktop application that runs your full tax document pipeline locally.
-Staff drag PDFs onto the window → it calls Claude API → outputs renamed PDFs,
-populated Excel templates, and a zip package. No Claude.ai required.
+Staff drag PDFs onto the window → it calls AWS Bedrock/Sonnet → outputs renamed PDFs,
+populated Excel templates, and a zip package. No Claude.ai or direct Anthropic API key required.
 
 ---
 
@@ -13,9 +13,9 @@ populated Excel templates, and a zip package. No Claude.ai required.
    Download from https://python.org/downloads
    ✅ Check "Add Python to PATH" during install
 
-2. **Your Anthropic API Key**
-   Get one at https://console.anthropic.com
-   Billing is per-token (~$0.10–$0.30 per client packet, varies by document count)
+2. **AWS Bedrock access**
+   Configure AWS credentials through the standard AWS chain (for example IAM Identity Center/SSO, AWS profile, or environment provided by your deployment).
+   Default region is `us-east-1`; Sonnet is the default model.
 
 3. **Your two Excel templates** — have their file paths ready:
    - `25_1040.xlsx` (Glenn Reeves template)
@@ -57,7 +57,9 @@ Staff double-clicks the setup file → installs like any normal program.
 1. Launch Tax Document Processor
 2. Click **⚙ Settings** (top right)
 3. Enter:
-   - **API Key** — your Anthropic API key (you manage this)
+   - **AWS Region** — defaults to `us-east-1`
+   - **AWS Profile** — optional local AWS profile name for developer installs
+   - **Bedrock Model ID** — defaults to Sonnet
    - **1040 Template** — browse to `25_1040.xlsx`
    - **DoubleCheck Template** — browse to `2025_Tax_Return_Double_Check.xlsx`
    - **Default Output Folder** — where client zip packages are saved (e.g., a shared network drive)
@@ -92,12 +94,12 @@ Settings are stored in `C:\Users\[name]\.tax_processor\config.json` — never in
 
 ---
 
-## API Key & Billing
+## Bedrock Access & Billing
 
-- The API key is entered in Settings and stored locally on the machine
-- Anthropic bills per token — roughly $0.10–$0.30 per client packet
-- Monitor usage at https://console.anthropic.com/usage
-- You can rotate or revoke the key anytime from the Anthropic console
+- The app does not use direct Anthropic API keys.
+- Bedrock credentials come from AWS configuration outside the app.
+- Billing and usage are managed in AWS.
+- Production identity, ZDR, and networking assumptions are tracked in `Epics/01_Bedrock/`.
 
 ---
 
@@ -106,12 +108,12 @@ Settings are stored in `C:\Users\[name]\.tax_processor\config.json` — never in
 **App won't open:** Make sure the entire `dist\TaxProcessor\` folder was copied,
 not just `TaxProcessor.exe`.
 
-**"No API Key" error:** Open Settings and paste your key from console.anthropic.com
+**AWS credential error:** Confirm your AWS profile/SSO session or deployment-provided credentials can call Bedrock Runtime in `us-east-1`.
 
 **Template not found:** Open Settings and re-browse to your Excel templates.
 If templates were moved, re-browse to the new location.
 
-**Extraction error on a PDF:** The PDF may be scanned/image-only. Claude can still
+**Extraction error on a PDF:** The PDF may be scanned/image-only. Bedrock/Sonnet can still
 read most scanned docs, but very low-quality scans may fail. Check the processing log.
 
 **Excel cells wrong:** The cell mappings in `pipeline.py` match your templates as of
@@ -125,7 +127,8 @@ developer to update the mappings.
 ```
 tax_processor/
 ├── app.py           # GUI application
-├── pipeline.py      # Processing logic (Claude API, Excel, file ops)
+├── pipeline.py      # Processing logic (Bedrock, Excel, file ops)
+├── bedrock_client.py # Thin Bedrock Runtime adapter
 ├── settings.py      # Settings storage
 ├── requirements.txt # Python dependencies
 ├── build.bat        # One-click builder

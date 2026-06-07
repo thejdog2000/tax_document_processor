@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pipeline import TaxPipeline
+from bedrock_client import BedrockTaxExtractor
 import re as _re, io as _io, builtins as _builtins
 
 # ── Tee output to last_logic_run.log ─────────────────────────────────────────
@@ -190,6 +191,46 @@ check("No 1099-INTs in packet → write through",
 p.extracted = [item("W-2", payer_name="First National Bank")]
 check("1099-INT not in packet (W-2 only) → write through",
       p._interest_already_covered("First National Bank"), False)
+
+
+# ── Bedrock response parsing and reviewer metadata ───────────────────────────
+print(f"\n{BOLD}Bedrock response parsing and reviewer metadata{RESET}")
+
+body = {
+    "content": [
+        {"type": "text", "text": '{"form_type":"W-2"}'},
+        {"type": "thinking", "thinking": "ignored"},
+    ]
+}
+check("Bedrock text blocks extracted",
+      BedrockTaxExtractor.response_text(body), '{"form_type":"W-2"}')
+
+wrapped = {
+    "form_type": {
+        "value": "W-2",
+        "confidence": "101",
+        "evidence": "Form W-2 Wage and Tax Statement",
+        "page": 1,
+    },
+    "tax_year": "2025",
+    "boxes": {
+        "box_1": {
+            "value": 52000.00,
+            "confidence": 96,
+            "evidence": "Box 1 52000.00",
+        }
+    },
+    "validation_flags": [],
+}
+normalized = p._normalize_extraction_schema(wrapped)
+check("Inline reviewer wrapper preserves scalar form_type",
+      normalized["form_type"], "W-2")
+check("Inline reviewer wrapper preserves scalar box",
+      normalized["boxes"]["box_1"], 52000.00)
+check("Confidence clamped to 100",
+      normalized["field_metadata"]["form_type"]["confidence"], 100)
+check("Box metadata stored under boxes.box_1",
+      normalized["field_metadata"]["boxes.box_1"]["evidence"], "Box 1 52000.00")
 
 
 # ── Year mismatch detection ───────────────────────────────────────────────────

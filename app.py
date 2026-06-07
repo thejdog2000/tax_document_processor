@@ -1,7 +1,7 @@
 """
 app.py — Tax Document Processor Desktop App
 Drag-and-drop GUI for the accounting firm pipeline.
-Requires: tkinterdnd2, anthropic, openpyxl  (see requirements.txt)
+Requires: tkinterdnd2, boto3, openpyxl  (see requirements.txt)
 """
 import os
 import threading
@@ -11,6 +11,7 @@ from pathlib import Path
 
 import tkinterdnd2 as tkdnd
 
+from bedrock_client import DEFAULT_BEDROCK_MODEL_ID
 from settings import Settings
 from pipeline import TaxPipeline
 
@@ -40,7 +41,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(parent)
         self.settings = settings
         self.title("Settings")
-        self.geometry("560x300")
+        self.geometry("620x390")
         self.resizable(False, False)
         self.configure(bg=CLR_BG)
         self.grab_set()
@@ -74,10 +75,16 @@ class SettingsDialog(tk.Toplevel):
                           relief="flat", padx=8).grid(row=row_n, column=2, padx=2)
             return var
 
-        self._v_key  = row("Anthropic API Key", 0, "api_key", masked=True)
-        self._v_1040 = row("1040 Template (.xlsx)", 1, "template_1040", browse=True)
-        self._v_dc   = row("DoubleCheck Template (.xlsx)", 2, "template_doublecheck", browse=True)
-        self._v_out  = row("Default Output Folder", 3, "output_folder", browse=False)
+        self._v_region = row("AWS Region", 0, "aws_region")
+        if not self._v_region.get():
+            self._v_region.set("us-east-1")
+        self._v_profile = row("AWS Profile (optional)", 1, "aws_profile")
+        self._v_model = row("Bedrock Model ID", 2, "bedrock_model_id")
+        if not self._v_model.get():
+            self._v_model.set(DEFAULT_BEDROCK_MODEL_ID)
+        self._v_1040 = row("1040 Template (.xlsx)", 3, "template_1040", browse=True)
+        self._v_dc   = row("DoubleCheck Template (.xlsx)", 4, "template_doublecheck", browse=True)
+        self._v_out  = row("Default Output Folder", 5, "output_folder", browse=False)
 
         # Output browse is a folder, not a file
         def _browse_out():
@@ -86,14 +93,16 @@ class SettingsDialog(tk.Toplevel):
                 self._v_out.set(folder)
         tk.Button(frame, text="Browse…", font=("Segoe UI", 9),
                   command=_browse_out, bg=CLR_ACCENT, fg="white",
-                  relief="flat", padx=8).grid(row=3, column=2, padx=2)
+                  relief="flat", padx=8).grid(row=5, column=2, padx=2)
 
         tk.Button(self, text="Save & Close", font=("Segoe UI", 11, "bold"),
                   bg=CLR_GREEN, fg="white", relief="flat", padx=20, pady=6,
                   command=self._save).pack(pady=12)
 
     def _save(self):
-        self.settings.set("api_key", self._v_key.get().strip())
+        self.settings.set("aws_region", self._v_region.get().strip() or "us-east-1")
+        self.settings.set("aws_profile", self._v_profile.get().strip())
+        self.settings.set("bedrock_model_id", self._v_model.get().strip())
         self.settings.set("template_1040", self._v_1040.get().strip())
         self.settings.set("template_doublecheck", self._v_dc.get().strip())
         self.settings.set("output_folder", self._v_out.get().strip())
@@ -122,7 +131,7 @@ class TaxProcessorApp(tkdnd.Tk):
         self._build_process_button()
         self._build_log()
 
-        if not self.settings.get("api_key"):
+        if not self.settings.get("template_1040") or not self.settings.get("template_doublecheck"):
             self.after(300, self._first_run)
 
     # ── UI construction ───────────────────────────────────────────────────────
@@ -259,9 +268,10 @@ class TaxProcessorApp(tkdnd.Tk):
         messagebox.showinfo(
             "Welcome to Tax Document Processor",
             "Before you begin, please go to Settings and enter:\n\n"
-            "  • Your Anthropic API key\n"
+            "  • AWS Bedrock region/profile if needed\n"
             "  • Path to your 1040 Excel template\n"
             "  • Path to your DoubleCheck Excel template\n\n"
+            "AWS credentials are resolved through your normal AWS configuration.\n\n"
             "The Settings window will open now."
         )
         self._open_settings()
@@ -326,14 +336,6 @@ class TaxProcessorApp(tkdnd.Tk):
         if not last:
             messagebox.showwarning("Missing Info", "Please enter the client's last name.")
             return
-        if not self.settings.get("api_key"):
-            messagebox.showerror(
-                "No API Key",
-                "Please enter your Anthropic API key in Settings before processing."
-            )
-            self._open_settings()
-            return
-
         # Lock UI
         self.process_btn.config(state="disabled", text="⏳  Processing…")
         self.status_var.set("Running pipeline…")
@@ -347,11 +349,14 @@ class TaxProcessorApp(tkdnd.Tk):
     def _run_pipeline(self, pdfs, last_name, first_name):
         try:
             pipeline = TaxPipeline(
-                api_key=self.settings.get("api_key"),
+                api_key=self.settings.get("api_key", ""),
                 template_1040=self.settings.get("template_1040"),
                 template_doublecheck=self.settings.get("template_doublecheck"),
                 output_folder=self.output_var.get(),
                 log_callback=self._append_log,
+                aws_region=self.settings.get("aws_region", "us-east-1"),
+                aws_profile=self.settings.get("aws_profile", ""),
+                bedrock_model_id=self.settings.get("bedrock_model_id", ""),
             )
             pipeline.run(
                 pdf_paths=pdfs,

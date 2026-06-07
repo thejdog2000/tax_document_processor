@@ -23,10 +23,12 @@ if not config_path.exists():
 with open(config_path) as f:
     config = json.load(f)
 
-api_key             = config.get("api_key", "")
 template_1040       = config.get("template_1040") or str(PROJECT_DIR / "25_1040.xlsx")
 template_doublecheck = config.get("template_doublecheck") or str(PROJECT_DIR / "2025_Tax_Return_Double_Check.xlsx")
 output_folder       = config.get("output_folder") or str(Path.home() / "Desktop" / "Test Client")
+aws_region          = config.get("aws_region", "us-east-1")
+aws_profile         = config.get("aws_profile", "")
+bedrock_model_id    = config.get("bedrock_model_id", "")
 
 # ── Find PDFs ─────────────────────────────────────────────────────────────────
 docs_dir = PROJECT_DIR.parent / "Client Test Docs" / "test_docs_whitfield"
@@ -43,11 +45,14 @@ print()
 
 # ── Run pipeline ──────────────────────────────────────────────────────────────
 pipeline = TaxPipeline(
-    api_key=api_key,
+    api_key="",
     template_1040=template_1040,
     template_doublecheck=template_doublecheck,
     output_folder=output_folder,
     log_callback=print,
+    aws_region=aws_region,
+    aws_profile=aws_profile,
+    bedrock_model_id=bedrock_model_id,
 )
 
 pipeline.run([str(p) for p in pdf_paths], "Whitfield", "")

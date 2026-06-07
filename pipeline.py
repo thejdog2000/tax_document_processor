@@ -1,8 +1,7 @@
 """
 pipeline.py — Tax document processing pipeline
-Handles: PDF extraction via Claude API, file renaming, Excel population, packaging
+Handles: PDF extraction via AWS Bedrock, file renaming, Excel population, packaging
 """
-import anthropic
 import base64
 import concurrent.futures
 import json
@@ -13,7 +12,8 @@ import zipfile
 from pathlib import Path
 
 import openpyxl
-import pdfplumber
+
+from bedrock_client import BedrockTaxExtractor
 
 # ── 1040 reporting order ──────────────────────────────────────────────────────
 FORM_ORDER = [
@@ -34,7 +34,7 @@ FORM_ORDER = [
     "Consolidated 1099",
 ]
 
-# ── Claude extraction prompt ───────────────────────────────────────────────────
+# ── Bedrock/Sonnet extraction prompt ───────────────────────────────────────────
 EXTRACTION_PROMPT = """You are a tax document processor for an accounting firm.
 Extract all data from this tax form PDF.
 
@@ -57,9 +57,32 @@ Required fields:
     "box_1": 52000.00,
     "box_2": 6240.00
   },
+  "field_metadata": {
+    "form_type": {
+      "confidence": 98,
+      "evidence": "Form W-2 Wage and Tax Statement",
+      "page": 1,
+      "notes": ""
+    },
+    "boxes.box_1": {
+      "confidence": 96,
+      "evidence": "Box 1 Wages, tips, other compensation 52000.00",
+      "page": 1,
+      "notes": ""
+    }
+  },
   "validation_flags": [],
   "notes": ""
 }
+
+Reviewer metadata rules:
+- Keep the main data fields exactly as scalar values, arrays, objects, or null as shown above.
+- Put field-level confidence/evidence in field_metadata using the same top-level field name, or boxes.[box_key] for box values.
+- confidence must be an integer from 0 to 100.
+- evidence must be a short snippet copied from the PDF or extracted text that supports the value.
+- page is optional and should be the visible source page number when available.
+- notes is optional and should describe ambiguity, not restate the value.
+- If evidence is unavailable, use an empty string and lower confidence appropriately.
 
 Filing status rules:
 - If the document or any attached notes explicitly state "MFJ", "Married Filing Jointly", "Married" with two names, set filing_status="MFJ"
@@ -137,8 +160,15 @@ LIMITS_2025 = {
 
 class TaxPipeline:
     def __init__(self, api_key, template_1040, template_doublecheck,
-                 output_folder, log_callback=None):
-        self.client = anthropic.Anthropic(api_key=api_key)
+                 output_folder, log_callback=None, aws_region=None,
+                 aws_profile=None, bedrock_model_id=None, extractor=None):
+        # api_key is a legacy constructor argument kept so existing tests and
+        # callers do not break; Bedrock uses the standard AWS credential chain.
+        self.extractor = extractor or BedrockTaxExtractor(
+            region=aws_region,
+            model_id=bedrock_model_id,
+            aws_profile=aws_profile,
+        )
         self.template_1040 = template_1040
         self.template_doublecheck = template_doublecheck
         self.output_folder = output_folder
@@ -161,7 +191,7 @@ class TaxPipeline:
 
         # ── STEP 1: Classify & extract (parallel) ────────────────────────────
         step1_start = time.time()
-        self.log(f"STEP 1 — Classifying {len(pdf_paths)} documents via Claude API... (parallel, 4 workers)")
+        self.log(f"STEP 1 — Classifying {len(pdf_paths)} documents via AWS Bedrock/Sonnet... (parallel, 4 workers)")
         self.extracted = []
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -353,6 +383,31 @@ class TaxPipeline:
                 doc_log_lines.append(f"    notes: {d['notes']}")
             doc_log_lines.append("")
 
+        doc_log_lines += [
+            "REVIEWER FIELD METADATA",
+            "-" * 40,
+        ]
+        metadata_lines = []
+        for item in self.extracted:
+            metadata = item["data"].get("field_metadata") or {}
+            for field_path, details in metadata.items():
+                if not isinstance(details, dict):
+                    continue
+                confidence = details.get("confidence", "?")
+                evidence = details.get("evidence") or ""
+                page = details.get("page")
+                page_text = f" p.{page}" if page else ""
+                line = f"  [{item['renamed']}] {field_path}: confidence {confidence}{page_text}"
+                if evidence:
+                    line += f" — evidence: {evidence}"
+                if details.get("notes"):
+                    line += f" — notes: {details['notes']}"
+                metadata_lines.append(line)
+        if metadata_lines:
+            doc_log_lines += metadata_lines
+        else:
+            doc_log_lines.append("  None returned")
+
         log_path = out_dir / "document_log.txt"
         log_path.write_text("\n".join(doc_log_lines), encoding="utf-8")
         self.log("  document_log.txt written")
@@ -431,6 +486,8 @@ class TaxPipeline:
         or None if scanned/image-only PDF.
         """
         try:
+            import pdfplumber
+
             with pdfplumber.open(pdf_path) as pdf:
                 text_parts = []
                 for page in pdf.pages:
@@ -444,15 +501,11 @@ class TaxPipeline:
 
     def _select_model(self, form_type: str, has_text_layer: bool) -> str:
         """
-        Route to appropriate model based on document complexity.
-        Currently returns primary model always — routing logic ready for
-        local LLM deployment where we'll use smaller model for simple forms.
+        Sonnet is the only enabled extraction model for the Bedrock v1 epic.
         """
-        # TODO: when adding Ollama support, route SIMPLE_FORMS with text layer
-        # to a faster smaller model (e.g. qwen2.5:14b)
-        return "claude-sonnet-4-6"  # Always primary model for now
+        return self.extractor.model_id
 
-    # ── Private: Claude API extraction ───────────────────────────────────────
+    # ── Private: Bedrock extraction ──────────────────────────────────────────
     def _extract_pdf(self, pdf_path):
         # Try text layer first — faster and fewer tokens for digital PDFs
         text_layer = self._extract_text_layer(pdf_path)
@@ -480,25 +533,85 @@ class TaxPipeline:
         model = self._select_model("", has_text_layer=text_layer is not None)
         t0 = time.time()
         try:
-            response = self.client.messages.create(
-                model=model,
-                max_tokens=1500,
-                messages=[{"role": "user", "content": content}]
-            )
+            text = self.extractor.extract_text(content, max_tokens=1500)
             elapsed = time.time() - t0
-            text = response.content[0].text.strip()
             # Strip markdown code fences if model adds them
             text = text.replace("```json", "").replace("```", "").strip()
             # Use raw_decode so extra content after the first JSON object
             # (e.g. two objects returned back-to-back) doesn't cause a failure
             obj, _ = json.JSONDecoder().raw_decode(text)
-            return obj, elapsed
+            return self._normalize_extraction_schema(obj), elapsed
         except json.JSONDecodeError as e:
             self.log(f"    ❌ JSON parse error: {e}")
             return None, time.time() - t0
         except Exception as e:
-            self.log(f"    ❌ API error: {e}")
+            self.log(f"    ❌ Bedrock error using {model}: {e}")
             return None, time.time() - t0
+
+    def _normalize_extraction_schema(self, obj):
+        """
+        Preserve the existing flat extraction values while accepting reviewer
+        wrappers if the model accidentally returns them inline.
+        """
+        if not isinstance(obj, dict):
+            return obj
+
+        normalized = dict(obj)
+        metadata = normalized.get("field_metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        wrapper_keys = {"value", "confidence", "evidence", "page", "notes"}
+
+        def unwrap(field_path, current):
+            if isinstance(current, dict) and "value" in current:
+                if wrapper_keys.intersection(current.keys()):
+                    field_meta = {
+                        k: current.get(k)
+                        for k in ("confidence", "evidence", "page", "notes")
+                        if k in current
+                    }
+                    if field_meta:
+                        metadata.setdefault(field_path, field_meta)
+                    return current.get("value")
+            return current
+
+        for key in list(normalized.keys()):
+            if key in ("boxes", "field_metadata"):
+                continue
+            normalized[key] = unwrap(key, normalized[key])
+
+        boxes = normalized.get("boxes")
+        if isinstance(boxes, dict):
+            normalized_boxes = {}
+            for box_key, box_value in boxes.items():
+                normalized_boxes[box_key] = unwrap(f"boxes.{box_key}", box_value)
+            normalized["boxes"] = normalized_boxes
+
+        normalized["field_metadata"] = self._sanitize_field_metadata(metadata)
+        return normalized
+
+    def _sanitize_field_metadata(self, metadata):
+        cleaned = {}
+        for field_path, details in (metadata or {}).items():
+            if not isinstance(details, dict):
+                continue
+            item = {}
+            confidence = details.get("confidence")
+            if confidence is not None:
+                try:
+                    item["confidence"] = max(0, min(100, int(confidence)))
+                except (TypeError, ValueError):
+                    pass
+            if "evidence" in details:
+                item["evidence"] = "" if details.get("evidence") is None else str(details.get("evidence"))[:500]
+            if "page" in details:
+                item["page"] = details.get("page")
+            if "notes" in details:
+                item["notes"] = "" if details.get("notes") is None else str(details.get("notes"))[:500]
+            if item:
+                cleaned[str(field_path)] = item
+        return cleaned
 
     # ── Private: Excel — Glenn Reeves 1040 template ──────────────────────────
     def _populate_1040(self, out_dir, client_slug, last_name, first_name, filing_status="Single"):
