@@ -1,0 +1,5 @@
+@import "../../ui_prototype/styles.css";
+
+.drop-zone {
+  cursor: pointer;
+}

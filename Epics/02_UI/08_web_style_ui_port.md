@@ -26,6 +26,23 @@ ui_prototype/
 
 This prototype is not connected to the backend and does not replace `app.py` yet.
 
+Initial React scaffold:
+
+```text
+frontend/
+├── package.json
+├── index.html
+├── README.md
+└── src/
+    ├── App.jsx
+    ├── main.jsx
+    └── styles.css
+```
+
+The React scaffold is intentionally not Electron. The current architecture bias
+is Tauri + React + Python sidecar/bridge, pending
+`Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md`.
+
 ## Scope
 
 - Choose the desktop shell path before implementation: Tauri, Electron, or another web-style desktop shell.
@@ -93,6 +110,7 @@ Internal diagnostic logs must remain outside client output folders:
 - The config screen has a visible first tab for file/folder organization.
 - The default folder/file hierarchy matches the current implementation.
 - The app has a documented local dev command and a test/smoke command.
+- React scaffold exists without committing to Electron.
 
 ## Implementation Notes For AI Agents
 
