@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tax Document Processor UI Prototype</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -56,20 +57,21 @@
             </p>
           </div>
 
-          <div class="drop-zone">
+          <div class="drop-zone" id="dropZone">
             <div class="paper-stack" aria-hidden="true">
               <span></span>
               <span></span>
               <strong>PDF</strong>
             </div>
             <div>
-              <p class="drop-title">No documents selected</p>
-              <p class="drop-copy">Drop W-2s, 1099s, organizers, notes, and supporting PDFs here.</p>
-              <button class="button secondary" type="button">Choose PDFs</button>
+              <p class="drop-title" id="dropTitle">No documents selected</p>
+              <p class="drop-copy" id="dropCopy">Drop W-2s, 1099s, organizers, notes, and supporting PDFs here.</p>
+              <button class="button secondary" id="chooseFilesButton" type="button">Choose PDFs</button>
+              <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
             </div>
           </div>
 
-          <div class="packet-strip" aria-label="Empty packet preview">
+          <div class="packet-strip" id="packetStrip" aria-label="Packet preview">
             <div class="packet-pill muted">W-2</div>
             <div class="packet-pill muted">1099-INT</div>
             <div class="packet-pill muted">1099-DIV</div>
@@ -79,15 +81,15 @@
         </article>
 
         <aside class="status-column" aria-label="Workflow status">
-          <article class="status-card current">
+          <article class="status-card current" id="packetStatus">
             <p class="eyebrow">Packet</p>
-            <h3>Waiting for PDFs</h3>
-            <p>Add source documents to enable processing.</p>
+            <h3 id="packetStatusTitle">Waiting for PDFs</h3>
+            <p id="packetStatusCopy">Add source documents to enable processing.</p>
           </article>
-          <article class="status-card">
+          <article class="status-card" id="clientStatus">
             <p class="eyebrow">Client</p>
-            <h3>Name optional</h3>
-            <p>Blank names create `Client_2025`.</p>
+            <h3 id="clientStatusTitle">Name optional</h3>
+            <p id="clientStatusCopy">Blank names create Client_2025.</p>
           </article>
           <article class="status-card locked" id="review">
             <p class="eyebrow">Reviewer mode</p>
@@ -109,11 +111,11 @@
         <div class="field-grid">
           <label>
             <span>Last name</span>
-            <input type="text" placeholder="Optional">
+            <input id="lastNameInput" type="text" placeholder="Optional">
           </label>
           <label>
             <span>First name</span>
-            <input type="text" placeholder="Optional">
+            <input id="firstNameInput" type="text" placeholder="Optional">
           </label>
           <label>
             <span>Tax year</span>
@@ -124,25 +126,25 @@
         <div class="destination-row">
           <label>
             <span>Output folder for this client</span>
-            <input type="text" value="~/Desktop" readonly>
+            <input id="outputFolderInput" type="text" value="~/Desktop">
           </label>
-          <button class="button secondary" type="button">Browse</button>
+          <button class="button secondary" id="browseButton" type="button">Browse</button>
         </div>
 
         <div class="run-row">
           <label class="checkbox-row">
-            <input type="checkbox" checked>
+            <input id="excelToggle" type="checkbox" checked>
             <span>Generate Excel review documents</span>
           </label>
-          <button class="button primary" type="button" disabled>Process Documents</button>
+          <button class="button primary" id="processButton" type="button" disabled>Process Documents</button>
         </div>
       </section>
 
       <section class="insight-grid" aria-label="Processing preview">
         <article class="preview-card">
           <p class="eyebrow">Output preview</p>
-          <h3>Current default folder package</h3>
-          <ul class="preview-list">
+          <h3 id="outputPreviewTitle">Current default folder package</h3>
+          <ul class="preview-list" id="outputPreviewList">
             <li><span>SD/</span><small>renamed source PDFs</small></li>
             <li><span>Review/</span><small>Excel workbooks</small></li>
             <li><span>Return/</span><small>created empty</small></li>
@@ -150,10 +152,10 @@
             <li><span>document_log_latest.txt</span><small>staff packet log</small></li>
           </ul>
         </article>
-        <article class="preview-card locked-panel">
+        <article class="preview-card locked-panel" id="reviewPanel">
           <p class="eyebrow">Future review queue</p>
-          <h3>Nothing to review yet</h3>
-          <p>
+          <h3 id="reviewPanelTitle">Nothing to review yet</h3>
+          <p id="reviewPanelCopy">
             Once backend correction exists, fields below the confidence threshold
             and validation-flagged items will appear here with evidence snippets.
           </p>
@@ -170,20 +172,20 @@
         </div>
 
         <nav class="tabs" aria-label="Settings tabs">
-          <a class="tab active" href="#configuration">File &amp; Folder Organization</a>
-          <a class="tab" href="#configuration">Excel Templates</a>
-          <a class="tab" href="#configuration">AWS / Bedrock</a>
-          <a class="tab" href="#configuration">Diagnostics</a>
+          <button class="tab active" type="button" data-tab="organization">File &amp; Folder Organization</button>
+          <button class="tab" type="button" data-tab="templates">Excel Templates</button>
+          <button class="tab" type="button" data-tab="bedrock">AWS / Bedrock</button>
+          <button class="tab" type="button" data-tab="diagnostics">Diagnostics</button>
         </nav>
 
-        <div class="config-grid">
+        <div class="config-grid tab-panel active" data-panel="organization">
           <article class="builder-panel">
             <div class="builder-header">
               <div>
                 <p class="eyebrow">Default hierarchy</p>
                 <h3>Choose what each client/year folder creates</h3>
               </div>
-              <button class="button secondary" type="button">Restore Defaults</button>
+              <button class="button secondary" id="restoreDefaultsButton" type="button">Restore Defaults</button>
             </div>
 
             <div class="tree-list" aria-label="Editable output hierarchy">
@@ -232,7 +234,7 @@
             </div>
 
             <div class="button-row">
-              <button class="button secondary" type="button">Add Folder</button>
+              <button class="button secondary" id="addFolderButton" type="button">Add Folder</button>
               <button class="button secondary" type="button">Add Generated File Rule</button>
             </div>
           </article>
@@ -268,6 +270,24 @@
               Internal app diagnostics stay in ~/.tax_processor/logs/app.log.
             </p>
           </aside>
+        </div>
+
+        <div class="tab-panel settings-placeholder" data-panel="templates">
+          <p class="eyebrow">Excel Templates</p>
+          <h3>Template management will live here.</h3>
+          <p>Future implementation should map office-approved workbook templates to generated review documents.</p>
+        </div>
+
+        <div class="tab-panel settings-placeholder" data-panel="bedrock">
+          <p class="eyebrow">AWS / Bedrock</p>
+          <h3>Admin-only model and region settings.</h3>
+          <p>Keep Sonnet as default and route inference through Bedrock only.</p>
+        </div>
+
+        <div class="tab-panel settings-placeholder" data-panel="diagnostics">
+          <p class="eyebrow">Diagnostics</p>
+          <h3>Support logs stay outside client output.</h3>
+          <p>Internal diagnostics belong in ~/.tax_processor/logs/app.log.</p>
         </div>
       </section>
     </section>

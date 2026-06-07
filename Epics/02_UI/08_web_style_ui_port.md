@@ -14,11 +14,12 @@ settings, and future low-confidence review.
 
 ## Current Prototype
 
-Static prototype:
+Backend-free interactive prototype:
 
 ```text
 ui_prototype/
 ├── index.html
+├── app.js
 ├── styles.css
 └── README.md
 ```
@@ -98,7 +99,7 @@ Internal diagnostic logs must remain outside client output folders:
 - Do not rewrite `pipeline.py` as part of the first UI port unless a small bridge requires it.
 - Keep the prototype and production app separate until the stack decision is made.
 - Favor a thin boundary: UI collects inputs, pipeline processes files, UI displays progress/results.
-- Record any unresolved architecture decision in `Epics/05_Architecture/01_decision_spike.md` instead of guessing.
+- Record unresolved architecture decisions in `Epics/05_Architecture/01_decision_spike.md` or the more specific `Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md` instead of guessing.
 - Keep changes incremental and reversible.
 
 ## Open Questions

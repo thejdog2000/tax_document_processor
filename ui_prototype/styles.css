@@ -316,6 +316,7 @@ h3 {
   background:
     radial-gradient(circle at 40% 10%, rgba(255, 248, 235, 0.88), transparent 18rem),
     linear-gradient(145deg, rgba(54, 91, 67, 0.13), rgba(197, 139, 58, 0.09));
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .drop-zone::before {
@@ -324,6 +325,12 @@ h3 {
   inset: 18px;
   border: 1px solid rgba(36, 59, 45, 0.08);
   border-radius: 24px;
+}
+
+.drop-zone.is-dragging {
+  border-color: rgba(36, 59, 45, 0.72);
+  box-shadow: inset 0 0 0 999px rgba(255, 248, 235, 0.30), var(--soft-shadow);
+  transform: translateY(-2px);
 }
 
 .paper-stack {
@@ -412,6 +419,7 @@ h3 {
   font-family: "Trebuchet MS", sans-serif;
   font-size: 0.78rem;
   font-weight: 900;
+  animation: riseIn 240ms ease both;
 }
 
 .packet-pill.muted {
@@ -598,6 +606,13 @@ input[type="text"]:focus {
   border-style: dashed;
 }
 
+.locked-panel.review-alert {
+  border-style: solid;
+  background:
+    linear-gradient(145deg, rgba(197, 139, 58, 0.22), rgba(255, 248, 235, 0.70)),
+    var(--glass);
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -610,9 +625,12 @@ input[type="text"]:focus {
 }
 
 .tab {
+  border: 0;
   border-radius: 999px;
   padding: 10px 14px;
   color: var(--muted);
+  background: transparent;
+  cursor: pointer;
   font-family: "Trebuchet MS", sans-serif;
   font-size: 0.88rem;
   font-weight: 900;
@@ -627,6 +645,31 @@ input[type="text"]:focus {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.82fr);
   gap: 18px;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: grid;
+}
+
+.settings-placeholder {
+  border: 1px solid rgba(45, 55, 44, 0.12);
+  border-radius: 28px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.settings-placeholder h3 {
+  margin: 8px 0;
+}
+
+.settings-placeholder p:last-child {
+  color: var(--muted);
+  font-family: "Trebuchet MS", sans-serif;
+  line-height: 1.5;
 }
 
 .builder-panel,
@@ -652,6 +695,7 @@ input[type="text"]:focus {
   border-radius: 18px;
   padding: 9px 11px;
   background: rgba(255, 248, 235, 0.72);
+  animation: riseIn 220ms ease both;
 }
 
 .tree-row:hover {
@@ -756,6 +800,17 @@ input[type="text"]:focus {
 .support-note {
   border-left: 3px solid var(--brass);
   padding-left: 12px;
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 1080px) {

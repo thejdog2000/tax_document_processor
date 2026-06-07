@@ -1,6 +1,6 @@
 # UI Prototype
 
-Static, backend-free prototype for iterating on the future main screen and
+Backend-free prototype for iterating on the future main screen and
 settings/config direction.
 
 This does not replace `app.py` yet. It is intentionally separate so visual
@@ -23,6 +23,8 @@ http://localhost:8090
 ## Current Scope
 
 - Empty packet intake state.
+- Browse and drag/drop PDF selection state.
+- Simulated processing, completion, and future review states.
 - Settings button visible in the top-right.
 - Optional first/last name fields.
 - Tax year locked to 2025.
@@ -37,3 +39,4 @@ http://localhost:8090
 
 - `Epics/02_UI/07_output_hierarchy_customization.md`
 - `Epics/02_UI/08_web_style_ui_port.md`
+- `Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md`

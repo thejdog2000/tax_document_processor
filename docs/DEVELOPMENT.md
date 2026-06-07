@@ -28,6 +28,7 @@ Static UI checks:
 
 ```bash
 python tests/test_ui_static.py
+python tests/test_ui_prototype_static.py
 ```
 
 Workbook fixture tests:
