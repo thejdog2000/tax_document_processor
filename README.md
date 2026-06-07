@@ -30,6 +30,38 @@ Not production-ready yet:
 
 See `docs/STATUS.md` for the detailed status.
 
+## Prioritization / Next Steps
+
+From an entrepreneur perspective:
+
+1. Validate one real end-to-end packet with a friendly tax office user.
+2. Decide pilot scope: internal-only, one firm, or paid beta.
+3. Prioritize trust blockers over polish: reviewer workflow, audit trail, and document log clarity.
+4. Decide customer auth and billing model before investing heavily in packaging.
+5. Define the acceptance criteria for a first paid pilot.
+
+From an AI engineer perspective:
+
+1. Complete `Epics/01_Bedrock/05_live_validation.md`.
+2. Build golden packet drift tests from real PDFs.
+3. Implement reviewer corrections before presenting reviewer mode as usable.
+4. Decide desktop-direct Bedrock vs backend service.
+5. Add repeatable verification commands or CI so AI agents can test consistently.
+
+From a tax accountant/user perspective:
+
+1. Confirm generated workbooks match how preparers actually review returns.
+2. Identify fields staff still manually double-check.
+3. Decide which warnings must block completion.
+4. Make document logs clearer for preparer handoff.
+5. Test confusing packets: mixed years, spouses, TN/AL state withholding, brokerage 1099s, and handwritten notes.
+
+Recommended immediate sequence:
+
+1. Live Bedrock validation.
+2. Staff workflow feedback.
+3. Reviewer corrections workflow.
+
 ## Quick Start
 
 Preview the UI:
