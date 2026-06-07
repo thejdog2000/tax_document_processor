@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build:sidecar": "python3 bridge/build_sidecar.py",
+    "dev:tauri": "npm run build:sidecar && tauri dev",
     "build": "vite build",
+    "build:tauri": "npm run build:sidecar && tauri build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/cli": "^2.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "vite": "^7.0.0",
     "typescript": "^5.8.0",

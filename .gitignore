@@ -26,6 +26,15 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+frontend/src-tauri/icons/android/
+frontend/src-tauri/icons/ios/
+frontend/src-tauri/icons/Square*Logo.png
+frontend/src-tauri/icons/StoreLogo.png
+frontend/src-tauri/binaries/tax-bridge-probe-*
+frontend/bridge/build/
+frontend/bridge/dist/
 
 # App config (contains API key)
 ~/.tax_processor/

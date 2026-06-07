@@ -3,3 +3,27 @@
 .drop-zone {
   cursor: pointer;
 }
+
+.bridge-panel {
+  gap: 14px;
+}
+
+.bridge-panel .button {
+  justify-self: start;
+}
+
+.bridge-log {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(45, 55, 44, 0.12);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(23, 27, 23, 0.88);
+}
+
+.bridge-log code {
+  color: #e8dfcf;
+  font-family: "Courier New", monospace;
+  font-size: 0.86rem;
+  white-space: pre-wrap;
+}

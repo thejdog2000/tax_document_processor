@@ -7,7 +7,7 @@ Use this when you want to open the app locally.
 From the project folder:
 
 ```bash
-cd /Users/jacobs/Documents/Claude/Projects/TaxParser/tax_document_processor
+cd /path/to/tax_document_processor
 python3 app.py
 ```
 
@@ -19,7 +19,7 @@ still open and allow click-to-browse file selection.
 Create and activate a virtual environment:
 
 ```bash
-cd /Users/jacobs/Documents/Claude/Projects/TaxParser/tax_document_processor
+cd /path/to/tax_document_processor
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -41,4 +41,3 @@ python app.py
 - Live processing requires AWS Bedrock credentials and model access.
 - Reviewer correction workflow is not complete yet.
 - Drag/drop requires `tkinterdnd2`; click-to-browse works as the fallback.
-

@@ -67,7 +67,7 @@ Recommended immediate sequence:
 Preview the UI:
 
 ```bash
-cd /Users/jacobs/Documents/Claude/Projects/TaxParser/tax_document_processor
+cd /path/to/tax_document_processor
 python3 app.py
 ```
 
@@ -83,6 +83,55 @@ python app.py
 
 If `tkinterdnd2` is missing, drag/drop is disabled, but click-to-browse should
 still work.
+
+## React/Tauri Spike Setup
+
+The future UI path is being spiked in `frontend/` with React, Vite, Tauri, and a
+Python bridge. This does not run the real tax pipeline yet.
+
+Required local tools:
+
+- Python 3
+- Node.js/npm for the React frontend
+- Rust/Cargo for the Tauri desktop shell
+- PyInstaller for packaging the Python sidecar probe
+
+Dependency definitions live in:
+
+- Python: `requirements.txt`
+- React/Tauri npm packages: `frontend/package.json`
+- Tauri Rust crate packages: `frontend/src-tauri/Cargo.toml`
+
+Run the React browser preview:
+
+```bash
+cd /path/to/tax_document_processor/frontend
+npm install
+npm run dev
+```
+
+Run the Tauri desktop spike:
+
+```bash
+cd /path/to/tax_document_processor/frontend
+source "$HOME/.cargo/env"
+python3 -m pip install -r ../requirements-dev.txt
+npm install
+npm run dev:tauri
+```
+
+Build the macOS desktop bundle:
+
+```bash
+cd /path/to/tax_document_processor/frontend
+source "$HOME/.cargo/env"
+python3 -m pip install -r ../requirements-dev.txt
+npm run build:tauri
+```
+
+Validate the spike by opening the Tauri Diagnostics tab and clicking
+`Run Python Bridge Test`. Success means Python progress lines stream into the UI
+and the final message says `Python bridge completed successfully.`
 
 ## Documentation
 

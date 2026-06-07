@@ -97,9 +97,40 @@ Create a tiny desktop shell proof:
 
 Only after that spike should the real pipeline be connected.
 
+## Current Spike State
+
+- React UI has a Diagnostics tab with a `Run Python Bridge Test` action.
+- Tauri scaffold exists under `frontend/src-tauri/`.
+- `frontend/bridge/progress_probe.py` is packaged as a Tauri sidecar with
+  PyInstaller.
+- Rust command `run_python_bridge` invokes the packaged sidecar.
+- Python probe prints progress JSON lines.
+- React listens for `python-bridge-progress` events.
+- `npm run build` succeeds for the React frontend.
+- `npm run build:sidecar` succeeds for the harmless Python probe sidecar.
+- Rust/Cargo is installed locally.
+- `cargo check` succeeds for the Tauri shell.
+- `npm run dev:tauri` launches the macOS Tauri shell.
+- `npm run build:tauri` builds the macOS `.app` and `.dmg` with the sidecar
+  included in the app bundle.
+- Manual Diagnostics button validation succeeds in the Tauri window:
+  - Python process starts.
+  - Progress messages stream into React.
+  - Final success payload returns to the UI.
+
+## Remaining Merge Concerns
+
+- Decide whether macOS-only packaging proof is enough for merge, or whether
+  Windows packaging must be proven first.
+- Replace the harmless sidecar probe with the real pipeline entrypoint before
+  calling this production-ready.
+- Keep the current Python/Tkinter app path available until the real pipeline
+  runs through the React/Tauri shell.
+
 ## Open Questions
 
-- Can Tauri package the Python sidecar cleanly on both macOS and Windows?
-- Should the bridge be process-based, local HTTP, or Tauri command-based?
+- Can Tauri package the real Python pipeline sidecar cleanly on Windows?
+- Should the real pipeline bridge remain Tauri command-based or move to a local
+  HTTP process for longer-running jobs?
 - How should errors be normalized for staff-facing messages versus diagnostics?
 - Which config settings are admin-only versus staff-editable?

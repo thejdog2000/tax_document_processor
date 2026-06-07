@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { runPythonBridge } from "./tauriBridge.js";
 
 const defaultFolders = [
   { id: "sd", type: "Folder", value: "SD", note: "renamed source PDFs", create: true },
@@ -38,6 +39,11 @@ export function App() {
   const [activeTab, setActiveTab] = useState("organization");
   const [folders, setFolders] = useState(defaultFolders);
   const [dragging, setDragging] = useState(false);
+  const [bridgeState, setBridgeState] = useState({
+    running: false,
+    result: "",
+    lines: [],
+  });
 
   const slug = clientSlug(lastName, firstName);
   const hasFiles = files.length > 0;
@@ -123,6 +129,7 @@ export function App() {
 
           <ConfigShell
             activeTab={activeTab}
+            bridgeState={bridgeState}
             folders={folders}
             onActiveTab={setActiveTab}
             onAddFolder={addFolder}
@@ -132,6 +139,21 @@ export function App() {
             }}
             onToggleFolder={(id, create) => {
               setFolders((current) => current.map((item) => (item.id === id ? { ...item, create } : item)));
+            }}
+            onRunBridge={async () => {
+              setBridgeState({ running: true, result: "", lines: [] });
+              try {
+                const result = await runPythonBridge((line) => {
+                  setBridgeState((current) => ({ ...current, lines: [...current.lines, line] }));
+                });
+                setBridgeState((current) => ({ ...current, running: false, result }));
+              } catch (error) {
+                setBridgeState((current) => ({
+                  ...current,
+                  running: false,
+                  result: error instanceof Error ? error.message : String(error),
+                }));
+              }
             }}
           />
         </section>
@@ -308,7 +330,17 @@ function InsightGrid({ files, slug, generateExcel, isProcessing, isComplete }) {
   );
 }
 
-function ConfigShell({ activeTab, folders, onActiveTab, onAddFolder, onRestoreDefaults, onRenameFolder, onToggleFolder }) {
+function ConfigShell({
+  activeTab,
+  bridgeState,
+  folders,
+  onActiveTab,
+  onAddFolder,
+  onRestoreDefaults,
+  onRenameFolder,
+  onToggleFolder,
+  onRunBridge,
+}) {
   const tabs = [
     ["organization", "File & Folder Organization"],
     ["templates", "Excel Templates"],
@@ -334,6 +366,8 @@ function ConfigShell({ activeTab, folders, onActiveTab, onAddFolder, onRestoreDe
           </article>
           <PatternPanel />
         </div>
+      ) : activeTab === "diagnostics" ? (
+        <BridgePanel bridgeState={bridgeState} onRunBridge={onRunBridge} />
       ) : (
         <div className="tab-panel active settings-placeholder">
           <p className="eyebrow">{tabs.find(([id]) => id === activeTab)?.[1]}</p>
@@ -342,6 +376,30 @@ function ConfigShell({ activeTab, folders, onActiveTab, onAddFolder, onRestoreDe
         </div>
       )}
     </section>
+  );
+}
+
+function BridgePanel({ bridgeState, onRunBridge }) {
+  return (
+    <div className="tab-panel active settings-placeholder bridge-panel">
+      <p className="eyebrow">Diagnostics</p>
+      <h3>Tauri Python bridge spike</h3>
+      <p>
+        This proves the desktop shell can invoke Python and stream progress
+        before we connect the real tax pipeline.
+      </p>
+      <button className="button primary" type="button" disabled={bridgeState.running} onClick={onRunBridge}>
+        {bridgeState.running ? "Running bridge..." : "Run Python Bridge Test"}
+      </button>
+      <div className="bridge-log" aria-label="Python bridge output">
+        {bridgeState.lines.length ? (
+          bridgeState.lines.map((line, index) => <code key={`${line}-${index}`}>{line}</code>)
+        ) : (
+          <code>No bridge output yet.</code>
+        )}
+      </div>
+      {bridgeState.result ? <p className="support-note">{bridgeState.result}</p> : null}
+    </div>
   );
 }
 

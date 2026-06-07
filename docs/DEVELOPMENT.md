@@ -3,11 +3,32 @@
 ## Setup
 
 ```bash
-cd /Users/jacobs/Documents/Claude/Projects/TaxParser/tax_document_processor
+cd /path/to/tax_document_processor
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+## Toolchain Requirements
+
+- Python 3 for the current app and processing pipeline.
+- Node.js/npm for the React frontend under `frontend/`.
+- Rust/Cargo for the Tauri desktop shell under `frontend/src-tauri/`.
+- PyInstaller for packaging the Python bridge probe sidecar.
+
+Dependency manifests:
+
+- Python packages: `requirements.txt`
+- Python dev/packaging packages: `requirements-dev.txt`
+- npm packages and scripts: `frontend/package.json`
+- Rust crates: `frontend/src-tauri/Cargo.toml`
+
+If Tauri cannot find Cargo, run:
+
+```bash
+source "$HOME/.cargo/env"
+cargo --version
 ```
 
 ## Run The App
@@ -30,6 +51,18 @@ Static UI checks:
 python tests/test_ui_static.py
 python tests/test_ui_prototype_static.py
 python tests/test_react_frontend_static.py
+```
+
+React/Tauri checks:
+
+```bash
+cd frontend
+npm install
+npm run build
+python3 -m pip install -r ../requirements-dev.txt
+source "$HOME/.cargo/env"
+npm run build:sidecar
+npm run dev:tauri
 ```
 
 Workbook fixture tests:
