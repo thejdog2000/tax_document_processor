@@ -1,5 +1,19 @@
 # Task: Modern Cross-Platform UI Shell
 
+## Status
+
+Partially complete.
+
+Implemented:
+- Main screen has clearer workflow status cards.
+- Settings remain behind the corner cog.
+- App falls back to click-to-browse when `tkinterdnd2` is unavailable.
+
+Remaining:
+- Validate the UI on macOS and Windows.
+- Continue spacing/polish after workflow safety is stronger.
+- Decide whether a future web-style shell is worth the packaging complexity.
+
 ## Goal
 
 Build a modern desktop UI shell that improves usability on macOS and Windows without sacrificing workflow speed.

@@ -1,5 +1,20 @@
 # Task: Extraction Schema With Confidence
 
+## Status
+
+Partially complete.
+
+Implemented:
+- Prompt asks for `field_metadata`.
+- Pipeline preserves scalar extracted fields.
+- Pipeline normalizes accidental inline `{value, confidence, evidence}` wrappers.
+- Document log can include reviewer metadata.
+
+Remaining:
+- Confirm real Bedrock responses consistently include useful evidence.
+- Decide whether metadata is required for every important field or only disputed fields.
+- Implement UI/backend correction workflow before treating reviewer mode as complete.
+
 ## Goal
 
 Extend the extraction schema so each field can carry a confidence value and evidence snippet for reviewer mode.

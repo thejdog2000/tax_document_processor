@@ -1,5 +1,18 @@
 # Task: Reviewer Mode
 
+## Status
+
+Not complete.
+
+Implemented:
+- Backend schema can carry confidence/evidence metadata.
+- UI intentionally marks reviewer mode as unavailable in the current build.
+
+Remaining:
+- Build correction workflow.
+- Decide whether review blocks completion.
+- Apply corrections before final workbook/package output.
+
 ## Goal
 
 Add a review workflow for low-confidence or flagged fields so a human can verify or correct uncertain extractions.
@@ -34,3 +47,4 @@ Add a review workflow for low-confidence or flagged fields so a human can verify
 
 - Review mode should be a safety feature, not a separate product path.
 - Keep the workflow fast enough that staff are not tempted to skip it.
+- Do not expose reviewer mode as available until corrections can be safely applied.

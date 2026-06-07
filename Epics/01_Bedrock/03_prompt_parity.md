@@ -1,5 +1,21 @@
 # Task: Prompt Parity and Bedrock Routing
 
+## Status
+
+Partially complete.
+
+Implemented:
+- Direct Anthropic SDK usage removed.
+- Thin Bedrock Runtime adapter added.
+- Existing prompt preserved with minimal reviewer metadata additions.
+- Sonnet remains the default model.
+- No fallback provider added.
+
+Remaining:
+- Run live Bedrock validation with real PDFs.
+- Compare Bedrock output against golden packets for drift.
+- Confirm final production model ID and account access.
+
 ## Goal
 
 Recreate current Anthropic extraction behavior through Bedrock with minimal output drift.
@@ -26,7 +42,6 @@ Recreate current Anthropic extraction behavior through Bedrock with minimal outp
 
 ## Open Questions
 
-- Which parts of the current prompt should be copied verbatim and which should be reworked?
 - Should prompt changes be tested against a golden set of documents before release?
 
 ## Implementation Notes
