@@ -1,7 +1,7 @@
 # Tax Document Processor
 
 Desktop app for turning client tax-document PDFs into renamed source files,
-populated review workbooks, document logs, and a zip package.
+populated review workbooks, document logs, and a consistent client folder package.
 
 The app currently runs locally, uses AWS Bedrock/Sonnet for extraction, and does
 not use direct Anthropic API keys.
@@ -106,7 +106,10 @@ still work.
 3. Enter client last name and first name.
 4. Confirm output folder.
 5. Process documents.
-6. Review document log, generated workbooks, and zip package.
+6. Review `document_log_latest.txt`, generated workbooks, and output folder.
+
+Packet log history is saved in each client folder under `logs/`. Internal app
+diagnostics are saved separately at `~/.tax_processor/logs/app.log`.
 
 ## Key Rules
 

@@ -5,10 +5,10 @@ Handles: PDF extraction via AWS Bedrock, file renaming, Excel population, packag
 import base64
 import concurrent.futures
 import json
+import logging
 import os
 import shutil
 import time
-import zipfile
 from pathlib import Path
 
 import openpyxl
@@ -161,7 +161,8 @@ LIMITS_2025 = {
 class TaxPipeline:
     def __init__(self, api_key, template_1040, template_doublecheck,
                  output_folder, log_callback=None, aws_region=None,
-                 aws_profile=None, bedrock_model_id=None, extractor=None):
+                 aws_profile=None, bedrock_model_id=None, extractor=None,
+                 generate_excel_review=True):
         # api_key is a legacy constructor argument kept so existing tests and
         # callers do not break; Bedrock uses the standard AWS credential chain.
         self.extractor = extractor or BedrockTaxExtractor(
@@ -174,11 +175,13 @@ class TaxPipeline:
         self.output_folder = output_folder
         self.log = log_callback or print
         self.extracted = []
+        self.generate_excel_review = generate_excel_review
+        self.app_logger = logging.getLogger("tax_document_processor")
 
     # ── Public entry point ────────────────────────────────────────────────────
     def run(self, pdf_paths, last_name, first_name):
         pipeline_start = time.time()
-        client_slug = f"{last_name}_{first_name}_2025" if first_name else f"{last_name}_2025"
+        client_slug = self._client_slug(last_name, first_name)
         out_dir = Path(self.output_folder) / client_slug
 
         # ── Create folder structure ───────────────────────────────────────────
@@ -186,8 +189,16 @@ class TaxPipeline:
         rev_dir = out_dir / "Review"           # Excel workbooks
         ret_dir = out_dir / "Return"           # Empty — for completed return
         sig_dir = out_dir / "Signature Pages"  # Empty — for signature pages
-        for d in [out_dir, sd_dir, rev_dir, ret_dir, sig_dir]:
+        packet_log_dir = out_dir / "logs"       # Versioned packet-facing logs
+        for d in [out_dir, sd_dir, rev_dir, ret_dir, sig_dir, packet_log_dir]:
             d.mkdir(parents=True, exist_ok=True)
+        self.app_logger.info(
+            "Pipeline run started: client_slug=%s pdf_count=%s output=%s generate_excel=%s",
+            client_slug,
+            len(pdf_paths),
+            out_dir,
+            self.generate_excel_review,
+        )
 
         # ── STEP 1: Classify & extract (parallel) ────────────────────────────
         step1_start = time.time()
@@ -203,6 +214,7 @@ class TaxPipeline:
                     data, elapsed = future.result()
                 except Exception as e:
                     data, elapsed = None, 0.0
+                    self.app_logger.exception("Unexpected error processing PDF: %s", pdf_path)
                     self.log(f"    ❌ Unexpected error processing {Path(pdf_path).name}: {e}")
                 raw_results[pdf_path] = (data, elapsed)
 
@@ -223,7 +235,7 @@ class TaxPipeline:
                 ft = (data.get("form_type") or "").lower().strip()
                 if any(x in ft for x in ("client", "organizer", "notes")):
                     data["form_type"] = "client_notes"
-                    data["payer_name"] = last_name  # Use client name, not inferred payer
+                    data["payer_name"] = last_name or first_name or "Client"
 
                 # Strip false-positive W-2 math flags (expected == got)
                 flags = data.get("validation_flags") or []
@@ -259,8 +271,12 @@ class TaxPipeline:
             self.log("")
             self.log("❌ HARD STOP — Year mismatch detected. Generating rejection package...")
             self._write_rejection_package(out_dir, client_slug, mismatched)
-            zip_path = self._zip(out_dir, client_slug)
-            self.log(f"  Rejection package ready: {zip_path}")
+            self.app_logger.warning(
+                "Pipeline run halted for year mismatch: client_slug=%s mismatched_count=%s",
+                client_slug,
+                len(mismatched),
+            )
+            self.log(f"  Rejection package ready: {out_dir}")
             return
 
         # ── Determine filing status ──────────────────────────────────────────
@@ -298,16 +314,19 @@ class TaxPipeline:
             self.log(f"  {orig} → {new_name}")
 
         # ── STEP 4: Populate spreadsheets ────────────────────────────────────
-        self.log("STEP 4 — Populating spreadsheets...")
-        if self.template_1040 and Path(self.template_1040).exists():
-            self._populate_1040(rev_dir, client_slug, last_name, first_name, filing_status)
-        else:
-            self.log("  ⚠  1040 template not configured — skipping")
+        if self.generate_excel_review:
+            self.log("STEP 4 — Populating spreadsheets...")
+            if self.template_1040 and Path(self.template_1040).exists():
+                self._populate_1040(rev_dir, client_slug, last_name, first_name, filing_status)
+            else:
+                self.log("  ⚠  1040 template not configured — skipping")
 
-        if self.template_doublecheck and Path(self.template_doublecheck).exists():
-            self._populate_doublecheck(rev_dir, client_slug, filing_status)
+            if self.template_doublecheck and Path(self.template_doublecheck).exists():
+                self._populate_doublecheck(rev_dir, client_slug, filing_status)
+            else:
+                self.log("  ⚠  DoubleCheck template not configured — skipping")
         else:
-            self.log("  ⚠  DoubleCheck template not configured — skipping")
+            self.log("STEP 4 — Excel review documents disabled — skipping spreadsheets")
 
         # ── Document log: validation flags ───────────────────────────────────
         all_flags = []
@@ -408,16 +427,22 @@ class TaxPipeline:
         else:
             doc_log_lines.append("  None returned")
 
-        log_path = out_dir / "document_log.txt"
-        log_path.write_text("\n".join(doc_log_lines), encoding="utf-8")
-        self.log("  document_log.txt written")
+        latest_log_path, versioned_log_path = self._write_document_logs(
+            out_dir,
+            packet_log_dir,
+            doc_log_lines,
+        )
+        self.log(f"  {latest_log_path.name} written")
+        self.log(f"  Versioned log saved: logs/{versioned_log_path.name}")
 
-        # ── STEP 5: Zip ───────────────────────────────────────────────────────
-        self.log("STEP 5 — Packaging...")
-        zip_path = self._zip(out_dir, client_slug)
-        self.log(f"  Package ready: {zip_path}")
         total_elapsed = time.time() - pipeline_start
-        self.log(f"✅ Pipeline complete — total time: {total_elapsed:.1f}s")
+        self.app_logger.info(
+            "Pipeline run completed: client_slug=%s elapsed=%.1fs output=%s",
+            client_slug,
+            total_elapsed,
+            out_dir,
+        )
+        self.log(f"✅ Pipeline complete — output folder: {out_dir} — total time: {total_elapsed:.1f}s")
 
     # ── Private: parse DOB and determine senior status ────────────────────────
     def _parse_dob(self, dob_str):
@@ -542,9 +567,11 @@ class TaxPipeline:
             obj, _ = json.JSONDecoder().raw_decode(text)
             return self._normalize_extraction_schema(obj), elapsed
         except json.JSONDecodeError as e:
+            self.app_logger.warning("Model JSON parse error for %s: %s", pdf_path, e)
             self.log(f"    ❌ JSON parse error: {e}")
             return None, time.time() - t0
         except Exception as e:
+            self.app_logger.exception("Bedrock extraction error for %s", pdf_path)
             self.log(f"    ❌ Bedrock error using {model}: {e}")
             return None, time.time() - t0
 
@@ -981,6 +1008,20 @@ class TaxPipeline:
         ]
         (out_dir / "client_request.txt").write_text("\n".join(req_lines), encoding="utf-8")
 
+    def _write_document_logs(self, out_dir, packet_log_dir, doc_log_lines):
+        """
+        Keep one obvious latest packet log for staff and one immutable copy per run.
+        Diagnostic/support logs are handled separately in app data.
+        """
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        text = "\n".join(doc_log_lines)
+        latest_log_path = out_dir / "document_log_latest.txt"
+        versioned_log_path = packet_log_dir / f"{timestamp}_document_log.txt"
+
+        latest_log_path.write_text(text, encoding="utf-8")
+        versioned_log_path.write_text(text, encoding="utf-8")
+        return latest_log_path, versioned_log_path
+
     # ── Private: helpers ──────────────────────────────────────────────────────
     def _interest_already_covered(self, payer_name) -> bool:
         """
@@ -999,6 +1040,18 @@ class TaxPipeline:
                 if existing and (p in existing or existing in p):
                     return True
         return False
+
+    def _client_slug(self, last_name, first_name):
+        parts = [
+            str(last_name or "").strip(),
+            str(first_name or "").strip(),
+        ]
+        name = "_".join(part for part in parts if part)
+        if not name:
+            name = "Client"
+        clean = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in name)
+        clean = "_".join(part for part in clean.split("_") if part)
+        return f"{clean or 'Client'}_2025"
 
     def _form_sort_key(self, form_type):
         try:
@@ -1033,15 +1086,6 @@ class TaxPipeline:
         for col_letter, value in col_value_map.items():
             if value is not None:
                 ws[f"{col_letter}{row}"] = value
-
-    def _zip(self, out_dir, client_slug):
-        zip_path = Path(self.output_folder) / f"{client_slug}.zip"
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for f in out_dir.rglob("*"):
-                if f.is_file():
-                    zf.write(f, f.relative_to(Path(self.output_folder)))
-        return zip_path
-
 
 def _f(val):
     """Return float or 0 — never None into Excel."""

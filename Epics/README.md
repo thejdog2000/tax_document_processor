@@ -7,7 +7,7 @@ This folder holds implementation-ready backlog items for AI-assisted development
 | Epic | Status | Notes |
 |---|---|---|
 | `01_Bedrock` | Partial | Bedrock-only code path exists; live AWS validation, production auth, and ZDR verification remain. |
-| `02_UI` | Partial | Main shell is being improved incrementally; reviewer correction workflow is not ready. |
+| `02_UI` | Partial | Tkinter shell is incremental; static web-style prototype and port task exist; reviewer correction workflow is not ready. |
 | `03_Packaging` | Not started | Installer, auto-update, and code signing remain productization work. |
 | `04_Tenant` | Not started | Office accounts, usage attribution, and shared billing model remain open. |
 | `05_Architecture` | Pending decision | Desktop-direct Bedrock vs backend service still needs a product/architecture decision. |

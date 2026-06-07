@@ -5,6 +5,7 @@ Requires: tkinterdnd2, boto3, openpyxl  (see requirements.txt)
 """
 import os
 import threading
+import traceback
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -14,6 +15,7 @@ try:
 except ModuleNotFoundError:
     tkdnd = None
 
+from app_logging import configure_app_logging
 from bedrock_client import DEFAULT_BEDROCK_MODEL_ID
 from settings import Settings
 
@@ -122,6 +124,8 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         self.resizable(False, False)
         self.configure(bg=CLR_BG)
 
+        self.app_logger = configure_app_logging()
+        self.app_logger.info("Tax Document Processor UI started")
         self.settings = Settings()
         self.dropped_files: list[str] = []
 
@@ -157,11 +161,11 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
                   command=self._open_settings).pack(side="right", padx=14)
 
     def _build_workflow_status(self):
-        outer = tk.Frame(self, bg=CLR_BG, padx=22, pady=(14, 0))
-        outer.pack(fill="x")
+        outer = tk.Frame(self, bg=CLR_BG, padx=22)
+        outer.pack(fill="x", pady=(14, 0))
 
         self.file_status_var = tk.StringVar(value="No PDFs selected")
-        self.client_status_var = tk.StringVar(value="Client name required")
+        self.client_status_var = tk.StringVar(value="Client name optional")
         self.review_status_var = tk.StringVar(value="Reviewer mode coming soon")
 
         self._status_card(
@@ -243,6 +247,10 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
                  font=("Segoe UI", 10, "bold"),
                  bg=CLR_CARD, fg=CLR_TEXT).grid(row=0, column=0,
                  columnspan=4, sticky="w", pady=(0, 8))
+        tk.Label(card, text="Optional — leave blank if the packet should be labeled Client_2025.",
+                 font=("Segoe UI", 9),
+                 bg=CLR_CARD, fg=CLR_MUTED).grid(row=1, column=0,
+                 columnspan=4, sticky="w", pady=(0, 8))
 
         def field(label, row, col):
             tk.Label(card, text=label, font=("Segoe UI", 10),
@@ -252,13 +260,24 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
             e.grid(row=row, column=col + 1, padx=(0, 20), sticky="w")
             return e
 
-        self.last_name  = field("Last Name:",  1, 0)
-        self.first_name = field("First Name:", 1, 2)
+        self.last_name  = field("Last Name:",  2, 0)
+        self.first_name = field("First Name:", 2, 2)
+        tk.Label(card, text="Tax Year:",
+                 font=("Segoe UI", 10),
+                 bg=CLR_CARD, fg=CLR_TEXT).grid(row=3, column=0, sticky="w", padx=(0, 6), pady=(10, 0))
+        self.tax_year_var = tk.StringVar(value="2025")
+        tk.Entry(card, textvariable=self.tax_year_var,
+                 font=("Segoe UI", 10), width=22,
+                 relief="solid", bd=1, state="readonly").grid(
+                     row=3, column=1, padx=(0, 20), sticky="w", pady=(10, 0))
         self.last_name.bind("<KeyRelease>", self._refresh_workflow_state)
         self.first_name.bind("<KeyRelease>", self._refresh_workflow_state)
 
     def _build_output_row(self):
-        row = tk.Frame(self, bg=CLR_BG, padx=22, pady=8)
+        outer = tk.Frame(self, bg=CLR_BG, padx=22, pady=8)
+        outer.pack(fill="x")
+
+        row = tk.Frame(outer, bg=CLR_BG)
         row.pack(fill="x")
 
         tk.Label(row, text="Output Folder:", font=("Segoe UI", 10),
@@ -274,6 +293,18 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         tk.Button(row, text="Browse…", font=("Segoe UI", 9),
                   bg=CLR_ACCENT, fg="white", relief="flat", padx=8,
                   command=self._browse_output).pack(side="left")
+
+        self.generate_excel_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            outer,
+            text="Generate Excel review documents",
+            variable=self.generate_excel_var,
+            font=("Segoe UI", 10),
+            bg=CLR_BG,
+            fg=CLR_TEXT,
+            activebackground=CLR_BG,
+            anchor="w",
+        ).pack(anchor="w", pady=(8, 0))
 
     def _build_process_button(self):
         btn_frame = tk.Frame(self, bg=CLR_BG)
@@ -400,9 +431,6 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
             messagebox.showwarning("No Files", "Please add PDF files first.")
             return
         last = self.last_name.get().strip()
-        if not last:
-            messagebox.showwarning("Missing Info", "Please enter the client's last name.")
-            return
         # Lock UI
         self.process_btn.config(state="disabled", text="⏳  Processing…")
         self.status_var.set("Running pipeline…")
@@ -418,6 +446,12 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         try:
             from pipeline import TaxPipeline
 
+            self.app_logger.info(
+                "Starting packet processing: pdf_count=%s output_folder=%s generate_excel=%s",
+                len(pdfs),
+                self.output_var.get(),
+                self.generate_excel_var.get(),
+            )
             pipeline = TaxPipeline(
                 api_key=self.settings.get("api_key", ""),
                 template_1040=self.settings.get("template_1040"),
@@ -427,15 +461,22 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
                 aws_region=self.settings.get("aws_region", "us-east-1"),
                 aws_profile=self.settings.get("aws_profile", ""),
                 bedrock_model_id=self.settings.get("bedrock_model_id", ""),
+                generate_excel_review=self.generate_excel_var.get(),
             )
             pipeline.run(
                 pdf_paths=pdfs,
                 last_name=last_name,
                 first_name=first_name,
             )
+            self.app_logger.info("Packet processing completed")
             self.after(0, self._finish_processing)
         except Exception as exc:
             msg = str(exc)
+            self.app_logger.error(
+                "Packet processing failed: %s\n%s",
+                msg,
+                traceback.format_exc(),
+            )
             self._append_log(f"\n❌ FATAL ERROR: {msg}")
             self.after(0, lambda: self.status_var.set(f"❌  Error — {msg[:60]}"))
             self.after(0, lambda: self.review_status_var.set("Reviewer mode coming soon"))
@@ -461,7 +502,7 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         elif last:
             self.client_status_var.set(f"{last} packet")
         else:
-            self.client_status_var.set("Client name required")
+            self.client_status_var.set("Client name optional")
 
     # ── Log helpers ───────────────────────────────────────────────────────────
     def _append_log(self, message: str):

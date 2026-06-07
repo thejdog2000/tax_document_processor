@@ -1,11 +1,14 @@
 """
-settings.py — Persistent settings for Tax Document Processor
-Stores config in ~/.tax_processor/config.json (never in the app folder)
+settings.py — Persistent settings and app-data paths for Tax Document Processor.
+Stores config/logs in ~/.tax_processor/ (never in the app folder).
 """
 import json
 from pathlib import Path
 
-CONFIG_PATH = Path.home() / ".tax_processor" / "config.json"
+APP_DATA_DIR = Path.home() / ".tax_processor"
+CONFIG_PATH = APP_DATA_DIR / "config.json"
+APP_LOG_DIR = APP_DATA_DIR / "logs"
+APP_LOG_PATH = APP_LOG_DIR / "app.log"
 
 
 class Settings:

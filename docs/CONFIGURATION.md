@@ -12,6 +12,24 @@ Settings are stored locally:
 
 The settings file is not stored in the app folder.
 
+## Diagnostic Logs
+
+Internal app diagnostics are stored locally:
+
+```text
+~/.tax_processor/logs/app.log
+```
+
+These logs are for troubleshooting app failures and should not be mixed into
+client output folders.
+
+## Packet Logs
+
+Each processed client output includes:
+
+- `document_log_latest.txt`: the current staff-facing packet log at the client folder root.
+- `logs/YYYYMMDD_HHMMSS_document_log.txt`: immutable per-run packet log history.
+
 ## Settings Fields
 
 | Setting | Purpose | Default |
@@ -28,4 +46,3 @@ The settings file is not stored in the app folder.
 - Routine users should usually only change template paths and output folder.
 - AWS model and profile settings are developer/admin settings for now.
 - If a template moves, reselect it from Settings.
-

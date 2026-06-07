@@ -21,11 +21,10 @@ the target AWS environment.
 - A real packet extracts through Bedrock.
 - Document log is generated.
 - Workbooks populate.
-- Zip package is created.
+- Output folder package is created.
 - No direct Anthropic API key is required.
 
 ## Open Questions
 
 - Which AWS account/profile is the canonical developer environment?
 - Which Sonnet model ID should be locked for production builds?
-

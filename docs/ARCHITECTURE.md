@@ -3,7 +3,8 @@
 ## Overview
 
 Tax Document Processor is a desktop app for turning client tax-document PDFs into
-renamed source files, populated review workbooks, document logs, and a zip package.
+renamed source files, populated review workbooks, document logs, and a consistent
+client folder package.
 
 ```text
 PDFs + client name
@@ -18,7 +19,7 @@ Processing pipeline (`pipeline.py`)
       +--> AWS Bedrock/Sonnet extraction (`bedrock_client.py`)
       +--> validation and open-item logging
       +--> Excel population (`openpyxl`)
-      +--> output folder + zip package
+      +--> output folder package
 ```
 
 ## Main Files
@@ -27,6 +28,7 @@ Processing pipeline (`pipeline.py`)
 - `pipeline.py`: extraction orchestration, validation handling, file operations, workbook population, package generation.
 - `bedrock_client.py`: thin AWS Bedrock Runtime adapter.
 - `settings.py`: persistent local settings in `~/.tax_processor/config.json`.
+- `app_logging.py`: rotating internal diagnostics in `~/.tax_processor/logs/app.log`.
 - `requirements.txt`: runtime dependencies.
 - `tests/`: logic and fixture-based workbook tests.
 - `Epics/`: product backlog and implementation intent.
@@ -50,6 +52,18 @@ Settings currently include:
 - 1040 template path
 - DoubleCheck template path
 - default output folder
+
+## Logging Boundary
+
+Client packet logs are output artifacts:
+
+- `document_log_latest.txt` lives at the client/year folder root for quick staff review.
+- `logs/YYYYMMDD_HHMMSS_document_log.txt` stores per-run packet history.
+
+Internal app diagnostics are support artifacts:
+
+- `~/.tax_processor/logs/app.log` is a rotating diagnostic log.
+- App diagnostics should stay out of client output folders.
 
 ## Reviewer Metadata
 
@@ -76,4 +90,3 @@ still reads the normal extracted values.
 - `tests/test_logic.py`: fast pure-logic tests.
 - `tests/run_tests.py --unit --fixture ...`: workbook population against golden fixtures.
 - Live integration tests require AWS Bedrock credentials and real PDFs.
-

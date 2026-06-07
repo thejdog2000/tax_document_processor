@@ -46,6 +46,5 @@ and confirm:
 - Extraction succeeds through Bedrock.
 - Document log is generated.
 - Workbooks are populated.
-- Zip package is created.
+- Output folder package is created.
 - No direct Anthropic API key is required.
-

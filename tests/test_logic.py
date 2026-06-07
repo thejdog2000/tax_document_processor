@@ -6,6 +6,7 @@ No API key, no PDFs, no Excel templates required.
 Run: python3 tests/test_logic.py
 """
 import sys
+import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -193,6 +194,21 @@ check("1099-INT not in packet (W-2 only) → write through",
       p._interest_already_covered("First National Bank"), False)
 
 
+# ── _client_slug ─────────────────────────────────────────────────────────────
+print(f"\n{BOLD}_client_slug() — optional client names{RESET}")
+
+check("Last + first",
+      p._client_slug("Thornton", "James"), "Thornton_James_2025")
+check("Last only",
+      p._client_slug("Whitfield", ""), "Whitfield_2025")
+check("Blank names fallback",
+      p._client_slug("", ""), "Client_2025")
+check("Whitespace names fallback",
+      p._client_slug("  ", " "), "Client_2025")
+check("Unsafe punctuation cleaned",
+      p._client_slug("Smith/Jones", "Anne Marie"), "Smith_Jones_Anne_Marie_2025")
+
+
 # ── Bedrock response parsing and reviewer metadata ───────────────────────────
 print(f"\n{BOLD}Bedrock response parsing and reviewer metadata{RESET}")
 
@@ -315,6 +331,35 @@ check("Real SS error present",            any("4500.00" in f for f in result), T
 check("Year mismatch present",            any("MISMATCH" in f for f in result), True)
 check("401k flag present",                any("401k" in f for f in result), True)
 check("False positive absent",            not any("4526.00 got 4526.00" in f for f in result), True)
+
+
+# ── Document log writing ──────────────────────────────────────────────────────
+print(f"\n{BOLD}Document log writing{RESET}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_dir = Path(tmp) / "Client_2025"
+    packet_log_dir = out_dir / "logs"
+    packet_log_dir.mkdir(parents=True)
+
+    latest_log_path, versioned_log_path = p._write_document_logs(
+        out_dir,
+        packet_log_dir,
+        ["DOCUMENT LOG", "Client: Test, Example"],
+    )
+
+    check("Latest packet log renamed",
+          latest_log_path.name, "document_log_latest.txt")
+    check("Latest packet log exists",
+          latest_log_path.exists(), True)
+    check("Versioned packet log exists",
+          versioned_log_path.exists(), True)
+    check("Versioned packet log saved under logs folder",
+          versioned_log_path.parent.name, "logs")
+    check("Versioned packet log uses document_log suffix",
+          versioned_log_path.name.endswith("_document_log.txt"), True)
+    check("Latest and versioned content match",
+          latest_log_path.read_text(encoding="utf-8"),
+          versioned_log_path.read_text(encoding="utf-8"))
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────

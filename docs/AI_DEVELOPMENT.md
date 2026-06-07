@@ -89,6 +89,16 @@ git diff --stat
 
 Stage only the intended files.
 
+## UI Checks
+
+Run static UI checks after touching `app.py`:
+
+```bash
+python tests/test_ui_static.py
+```
+
+These checks are intentionally display-free so they can run in AI sessions and CI.
+
 ## Epic Maintenance
 
 After each meaningful implementation slice:
@@ -97,4 +107,3 @@ After each meaningful implementation slice:
 - Update the relevant epic/task status.
 - Add follow-up tasks for newly discovered work.
 - Consolidate completed work into the epic summary instead of leaving stale open tasks.
-

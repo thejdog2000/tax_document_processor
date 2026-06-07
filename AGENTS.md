@@ -53,6 +53,7 @@ Run quick verification:
 
 ```bash
 PYTHONPYCACHEPREFIX=/private/tmp/taxparser_pycache python3 -m py_compile app.py pipeline.py settings.py bedrock_client.py
+python3 tests/test_ui_static.py
 python3 tests/test_logic.py
 ```
 
@@ -75,4 +76,3 @@ python3 tests/run_tests.py --unit --fixture year_mismatch
 - Keep commits scoped by purpose.
 - Do not mix docs, UI, backend, and test fixture churn unless the task truly spans them.
 - Generated test logs under `tests/last_*.log` are usually not part of feature commits.
-

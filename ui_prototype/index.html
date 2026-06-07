@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tax Document Processor UI Prototype</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main class="desktop-frame">
+    <aside class="command-rail" aria-label="Primary navigation">
+      <div class="brand-mark">TP</div>
+      <nav>
+        <a class="rail-item active" href="#intake" aria-label="Intake">
+          <span>01</span>
+          Intake
+        </a>
+        <a class="rail-item locked" href="#review" aria-label="Review unavailable">
+          <span>02</span>
+          Review
+        </a>
+        <a class="rail-item" href="#configuration" aria-label="Settings">
+          <span>03</span>
+          Config
+        </a>
+      </nav>
+      <div class="rail-footer">
+        <p>2025</p>
+        <small>Local workspace</small>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">front office intake</p>
+          <h1>Turn a messy packet into a clean client folder.</h1>
+        </div>
+        <a class="settings-button" href="#configuration" aria-label="Open settings">
+          <span class="gear" aria-hidden="true"></span>
+          Settings
+        </a>
+      </header>
+
+      <section class="intake-grid" id="intake" aria-label="Document intake">
+        <article class="glass-card hero-card">
+          <div class="hero-copy">
+            <p class="eyebrow">Step 1</p>
+            <h2>Drop in the client’s PDFs.</h2>
+            <p>
+              We’ll read the documents, rename source files, create the office
+              folder structure, and prepare Excel review documents when enabled.
+            </p>
+          </div>
+
+          <div class="drop-zone">
+            <div class="paper-stack" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <strong>PDF</strong>
+            </div>
+            <div>
+              <p class="drop-title">No documents selected</p>
+              <p class="drop-copy">Drop W-2s, 1099s, organizers, notes, and supporting PDFs here.</p>
+              <button class="button secondary" type="button">Choose PDFs</button>
+            </div>
+          </div>
+
+          <div class="packet-strip" aria-label="Empty packet preview">
+            <div class="packet-pill muted">W-2</div>
+            <div class="packet-pill muted">1099-INT</div>
+            <div class="packet-pill muted">1099-DIV</div>
+            <div class="packet-pill muted">Organizer</div>
+            <div class="packet-pill ghost">waiting</div>
+          </div>
+        </article>
+
+        <aside class="status-column" aria-label="Workflow status">
+          <article class="status-card current">
+            <p class="eyebrow">Packet</p>
+            <h3>Waiting for PDFs</h3>
+            <p>Add source documents to enable processing.</p>
+          </article>
+          <article class="status-card">
+            <p class="eyebrow">Client</p>
+            <h3>Name optional</h3>
+            <p>Blank names create `Client_2025`.</p>
+          </article>
+          <article class="status-card locked" id="review">
+            <p class="eyebrow">Reviewer mode</p>
+            <h3>Locked for now</h3>
+            <p>Low-confidence review unlocks after backend correction support.</p>
+          </article>
+        </aside>
+      </section>
+
+      <section class="details-card glass-card" aria-label="Client and output details">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Step 2</p>
+            <h2>Client and output details</h2>
+          </div>
+          <span class="badge">Per-client destination</span>
+        </div>
+
+        <div class="field-grid">
+          <label>
+            <span>Last name</span>
+            <input type="text" placeholder="Optional">
+          </label>
+          <label>
+            <span>First name</span>
+            <input type="text" placeholder="Optional">
+          </label>
+          <label>
+            <span>Tax year</span>
+            <input type="text" value="2025" readonly>
+          </label>
+        </div>
+
+        <div class="destination-row">
+          <label>
+            <span>Output folder for this client</span>
+            <input type="text" value="~/Desktop" readonly>
+          </label>
+          <button class="button secondary" type="button">Browse</button>
+        </div>
+
+        <div class="run-row">
+          <label class="checkbox-row">
+            <input type="checkbox" checked>
+            <span>Generate Excel review documents</span>
+          </label>
+          <button class="button primary" type="button" disabled>Process Documents</button>
+        </div>
+      </section>
+
+      <section class="insight-grid" aria-label="Processing preview">
+        <article class="preview-card">
+          <p class="eyebrow">Output preview</p>
+          <h3>Current default folder package</h3>
+          <ul class="preview-list">
+            <li><span>SD/</span><small>renamed source PDFs</small></li>
+            <li><span>Review/</span><small>Excel workbooks</small></li>
+            <li><span>Return/</span><small>created empty</small></li>
+            <li><span>Signature Pages/</span><small>created empty</small></li>
+            <li><span>document_log_latest.txt</span><small>staff packet log</small></li>
+          </ul>
+        </article>
+        <article class="preview-card locked-panel">
+          <p class="eyebrow">Future review queue</p>
+          <h3>Nothing to review yet</h3>
+          <p>
+            Once backend correction exists, fields below the confidence threshold
+            and validation-flagged items will appear here with evidence snippets.
+          </p>
+        </article>
+      </section>
+
+      <section class="config-shell" id="configuration" aria-label="Settings configuration">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Configuration</p>
+            <h2>Office setup</h2>
+          </div>
+          <span class="badge dark">Saved outside install folder</span>
+        </div>
+
+        <nav class="tabs" aria-label="Settings tabs">
+          <a class="tab active" href="#configuration">File &amp; Folder Organization</a>
+          <a class="tab" href="#configuration">Excel Templates</a>
+          <a class="tab" href="#configuration">AWS / Bedrock</a>
+          <a class="tab" href="#configuration">Diagnostics</a>
+        </nav>
+
+        <div class="config-grid">
+          <article class="builder-panel">
+            <div class="builder-header">
+              <div>
+                <p class="eyebrow">Default hierarchy</p>
+                <h3>Choose what each client/year folder creates</h3>
+              </div>
+              <button class="button secondary" type="button">Restore Defaults</button>
+            </div>
+
+            <div class="tree-list" aria-label="Editable output hierarchy">
+              <div class="tree-row root-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type root">Root</span>
+                <strong>Client_2025/</strong>
+                <span class="row-note">destination picked on main screen</span>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type folder">Folder</span>
+                <input type="text" value="SD">
+                <label class="mini-toggle"><input type="checkbox" checked> create</label>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type folder">Folder</span>
+                <input type="text" value="Review">
+                <label class="mini-toggle"><input type="checkbox" checked> create</label>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type folder">Folder</span>
+                <input type="text" value="Return">
+                <label class="mini-toggle"><input type="checkbox" checked> create</label>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type folder">Folder</span>
+                <input type="text" value="Signature Pages">
+                <label class="mini-toggle"><input type="checkbox" checked> create</label>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type log">Log</span>
+                <input type="text" value="logs/">
+                <span class="row-note">packet history</span>
+              </div>
+              <div class="tree-row">
+                <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                <span class="row-type log">Log</span>
+                <input type="text" value="document_log_latest.txt">
+                <span class="row-note">latest packet log</span>
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button class="button secondary" type="button">Add Folder</button>
+              <button class="button secondary" type="button">Add Generated File Rule</button>
+            </div>
+          </article>
+
+          <aside class="pattern-panel">
+            <p class="eyebrow">Naming and destinations</p>
+            <h3>Patterns staff should not have to remember</h3>
+
+            <label>
+              <span>Client folder pattern</span>
+              <input type="text" value="{last}_{first}_{tax_year}">
+            </label>
+            <label>
+              <span>Renamed PDF pattern</span>
+              <input type="text" value="{form_type}_{payer}_{tax_year}.pdf">
+            </label>
+            <label>
+              <span>1040 workbook pattern</span>
+              <input type="text" value="{client_slug}_1040.xlsx">
+            </label>
+            <label>
+              <span>DoubleCheck workbook pattern</span>
+              <input type="text" value="{client_slug}_DoubleCheck.xlsx">
+            </label>
+
+            <div class="destination-rules">
+              <div><span>Renamed PDFs</span><strong>SD/</strong></div>
+              <div><span>Excel workbooks</span><strong>Review/</strong></div>
+              <div><span>Packet logs</span><strong>Client root + logs/</strong></div>
+            </div>
+
+            <p class="support-note">
+              Internal app diagnostics stay in ~/.tax_processor/logs/app.log.
+            </p>
+          </aside>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

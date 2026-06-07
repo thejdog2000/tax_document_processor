@@ -24,6 +24,12 @@ Quick logic tests:
 python tests/test_logic.py
 ```
 
+Static UI checks:
+
+```bash
+python tests/test_ui_static.py
+```
+
 Workbook fixture tests:
 
 ```bash
@@ -43,4 +49,3 @@ PYTHONPYCACHEPREFIX=/private/tmp/taxparser_pycache python -m py_compile app.py p
 - Keep commits small and scoped.
 - Do not commit generated `tests/last_*.log` files unless intentionally updating test artifacts.
 - For AI-assisted changes, read `AGENTS.md` before editing.
-
