@@ -6,14 +6,16 @@ Requires: tkinterdnd2, boto3, openpyxl  (see requirements.txt)
 import os
 import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox
 from pathlib import Path
 
-import tkinterdnd2 as tkdnd
+try:
+    import tkinterdnd2 as tkdnd
+except ModuleNotFoundError:
+    tkdnd = None
 
 from bedrock_client import DEFAULT_BEDROCK_MODEL_ID
 from settings import Settings
-from pipeline import TaxPipeline
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Colors
@@ -31,7 +33,6 @@ CLR_DROPBORDER = "#aed6f1"
 CLR_DROPOK = "#d5f5e3"
 CLR_LOG_BG = "#1e1e2e"
 CLR_LOG_FG = "#cdd6f4"
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Settings dialog
@@ -113,11 +114,11 @@ class SettingsDialog(tk.Toplevel):
 # ─────────────────────────────────────────────────────────────────────────────
 # Main application window
 # ─────────────────────────────────────────────────────────────────────────────
-class TaxProcessorApp(tkdnd.Tk):
+class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
     def __init__(self):
         super().__init__()
         self.title("Tax Document Processor — 2025")
-        self.geometry("680x660")
+        self.geometry("800x760")
         self.resizable(False, False)
         self.configure(bg=CLR_BG)
 
@@ -125,6 +126,7 @@ class TaxProcessorApp(tkdnd.Tk):
         self.dropped_files: list[str] = []
 
         self._build_header()
+        self._build_workflow_status()
         self._build_drop_zone()
         self._build_client_fields()
         self._build_output_row()
@@ -154,8 +156,59 @@ class TaxProcessorApp(tkdnd.Tk):
                   cursor="hand2",
                   command=self._open_settings).pack(side="right", padx=14)
 
+    def _build_workflow_status(self):
+        outer = tk.Frame(self, bg=CLR_BG, padx=22, pady=(14, 0))
+        outer.pack(fill="x")
+
+        self.file_status_var = tk.StringVar(value="No PDFs selected")
+        self.client_status_var = tk.StringVar(value="Client name required")
+        self.review_status_var = tk.StringVar(value="Reviewer mode coming soon")
+
+        self._status_card(
+            outer,
+            "1. Packet",
+            self.file_status_var,
+            CLR_DROP,
+            0,
+        )
+        self._status_card(
+            outer,
+            "2. Client",
+            self.client_status_var,
+            CLR_CARD,
+            1,
+        )
+        review_card = self._status_card(
+            outer,
+            "3. Review",
+            self.review_status_var,
+            CLR_CARD,
+            2,
+        )
+        tk.Label(
+            review_card,
+            text="Unavailable in this build",
+            font=("Segoe UI", 9, "bold"),
+            bg=CLR_CARD,
+            fg=CLR_MUTED,
+        ).pack(anchor="w", pady=(8, 0))
+
+    def _status_card(self, parent, title, text_var, bg, col):
+        card = tk.Frame(parent, bg=bg, bd=1, relief="solid", padx=12, pady=9)
+        card.grid(row=0, column=col, sticky="nsew", padx=(0, 10 if col < 2 else 0))
+        parent.grid_columnconfigure(col, weight=1, uniform="status")
+
+        tk.Label(card, text=title,
+                 font=("Segoe UI", 9, "bold"),
+                 bg=bg, fg=CLR_TEXT).pack(anchor="w")
+        tk.Label(card, textvariable=text_var,
+                 font=("Segoe UI", 9),
+                 bg=bg, fg=CLR_MUTED,
+                 wraplength=210, justify="left").pack(anchor="w", pady=(4, 0))
+        return card
+
     def _build_drop_zone(self):
-        outer = tk.Frame(self, bg=CLR_BG, padx=22, pady=14)
+        outer = tk.Frame(self, bg=CLR_BG, padx=22, pady=12)
         outer.pack(fill="x")
 
         self.drop_zone = tk.Label(
@@ -169,11 +222,15 @@ class TaxProcessorApp(tkdnd.Tk):
             cursor="hand2",
         )
         self.drop_zone.pack(fill="x")
-        self.drop_zone.drop_target_register(tkdnd.DND_FILES)
-        self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
+        if tkdnd:
+            self.drop_zone.drop_target_register(tkdnd.DND_FILES)
+            self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
         self.drop_zone.bind("<Button-1>", self._browse_files)
 
-        self.file_label_var = tk.StringVar(value="No files selected")
+        label = "No files selected"
+        if not tkdnd:
+            label += " — drag/drop unavailable; click to browse"
+        self.file_label_var = tk.StringVar(value=label)
         tk.Label(outer, textvariable=self.file_label_var,
                  font=("Segoe UI", 9), bg=CLR_BG, fg=CLR_MUTED).pack(anchor="w", pady=(4, 0))
 
@@ -197,6 +254,8 @@ class TaxProcessorApp(tkdnd.Tk):
 
         self.last_name  = field("Last Name:",  1, 0)
         self.first_name = field("First Name:", 1, 2)
+        self.last_name.bind("<KeyRelease>", self._refresh_workflow_state)
+        self.first_name.bind("<KeyRelease>", self._refresh_workflow_state)
 
     def _build_output_row(self):
         row = tk.Frame(self, bg=CLR_BG, padx=22, pady=8)
@@ -291,6 +350,7 @@ class TaxProcessorApp(tkdnd.Tk):
         if pdfs:
             self.dropped_files = pdfs
             self._refresh_drop_zone()
+            self._refresh_workflow_state()
 
     def _browse_files(self, _event=None):
         files = filedialog.askopenfilenames(
@@ -300,16 +360,22 @@ class TaxProcessorApp(tkdnd.Tk):
         if files:
             self.dropped_files = list(files)
             self._refresh_drop_zone()
+            self._refresh_workflow_state()
 
     def _refresh_drop_zone(self):
         n = len(self.dropped_files)
         names = [Path(f).name for f in self.dropped_files]
         if n == 0:
+            label = "No files selected"
+            if not tkdnd:
+                label += " — drag/drop unavailable; click to browse"
             self.drop_zone.config(
-                text="📄   Drop PDF files here\n\nor click to browse",
+                text=("📄   Drop PDF files here\n\nor click to browse" if tkdnd
+                      else "📄   Click to browse PDF files"),
                 bg=CLR_DROP, fg=CLR_ACCENT
             )
-            self.file_label_var.set("No files selected")
+            self.file_label_var.set(label)
+            self.file_status_var.set("No PDFs selected")
         else:
             display = ", ".join(names[:4])
             if n > 4:
@@ -319,6 +385,7 @@ class TaxProcessorApp(tkdnd.Tk):
                 bg=CLR_DROPOK, fg="#1e8449"
             )
             self.file_label_var.set(display)
+            self.file_status_var.set(f"{n} PDF{'s' if n > 1 else ''} ready")
 
     def _browse_output(self):
         folder = filedialog.askdirectory(title="Select output folder")
@@ -339,6 +406,7 @@ class TaxProcessorApp(tkdnd.Tk):
         # Lock UI
         self.process_btn.config(state="disabled", text="⏳  Processing…")
         self.status_var.set("Running pipeline…")
+        self.review_status_var.set("Reviewer mode coming soon")
         self._clear_log()
 
         first = self.first_name.get().strip()
@@ -348,6 +416,8 @@ class TaxProcessorApp(tkdnd.Tk):
 
     def _run_pipeline(self, pdfs, last_name, first_name):
         try:
+            from pipeline import TaxPipeline
+
             pipeline = TaxPipeline(
                 api_key=self.settings.get("api_key", ""),
                 template_1040=self.settings.get("template_1040"),
@@ -363,20 +433,35 @@ class TaxProcessorApp(tkdnd.Tk):
                 last_name=last_name,
                 first_name=first_name,
             )
-            self.after(0, lambda: self.status_var.set("✅  Complete — package ready"))
-            self.after(0, lambda: messagebox.showinfo(
-                "Complete",
-                f"Processing complete!\n\n"
-                f"Output folder:\n{self.output_var.get()}"
-            ))
+            self.after(0, self._finish_processing)
         except Exception as exc:
             msg = str(exc)
             self._append_log(f"\n❌ FATAL ERROR: {msg}")
             self.after(0, lambda: self.status_var.set(f"❌  Error — {msg[:60]}"))
+            self.after(0, lambda: self.review_status_var.set("Reviewer mode coming soon"))
             self.after(0, lambda: messagebox.showerror("Processing Error", msg))
         finally:
             self.after(0, lambda: self.process_btn.config(
                 state="normal", text="▶   Process Documents"))
+
+    def _finish_processing(self):
+        self.review_status_var.set("Reviewer mode coming soon")
+        self.status_var.set("✅  Complete — package ready")
+        messagebox.showinfo(
+            "Complete",
+            f"Processing complete!\n\n"
+            f"Output folder:\n{self.output_var.get()}"
+        )
+
+    def _refresh_workflow_state(self, _event=None):
+        last = self.last_name.get().strip()
+        first = self.first_name.get().strip()
+        if last and first:
+            self.client_status_var.set(f"{last}, {first}")
+        elif last:
+            self.client_status_var.set(f"{last} packet")
+        else:
+            self.client_status_var.set("Client name required")
 
     # ── Log helpers ───────────────────────────────────────────────────────────
     def _append_log(self, message: str):
