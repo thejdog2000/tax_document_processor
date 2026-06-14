@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { runPythonBridge } from "./tauriBridge.js";
+import { useState, useEffect } from "react";
+import { runProbe, runPipeline, pickPdfPaths, loadSettings, saveSettings, pickFolder, pickXlsxFile } from "./tauriBridge.js";
 
 const defaultFolders = [
   { id: "sd", type: "Folder", value: "SD", note: "renamed source PDFs", create: true },
@@ -30,7 +30,17 @@ function guessedFormType(file, index) {
 }
 
 export function App() {
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([]);       // File objects for display
+  const [pdfPaths, setPdfPaths] = useState([]); // absolute paths for pipeline
+  const [settings, setSettings] = useState({
+    aws_region: "us-east-1",
+    aws_profile: "",
+    bedrock_model_id: "us.anthropic.claude-sonnet-4-6",
+    template_1040: "",
+    template_doublecheck: "",
+    output_folder: "",
+  });
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [outputFolder, setOutputFolder] = useState("~/Desktop");
@@ -45,6 +55,14 @@ export function App() {
     lines: [],
   });
 
+  useEffect(() => {
+    loadSettings().then((loaded) => {
+      if (!loaded || !Object.keys(loaded).length) return;
+      setSettings((s) => ({ ...s, ...loaded }));
+      if (loaded.output_folder) setOutputFolder(loaded.output_folder);
+    });
+  }, []);
+
   const slug = clientSlug(lastName, firstName);
   const hasFiles = files.length > 0;
   const isProcessing = processingState === "processing";
@@ -53,13 +71,49 @@ export function App() {
   function selectFiles(fileList) {
     const pdfs = Array.from(fileList).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
     setFiles(pdfs);
+    setPdfPaths([]); // paths come from pickPdfPaths in Tauri; cleared on new selection
     setProcessingState("idle");
   }
 
-  function simulateProcessing() {
+  async function openNativeFilePicker() {
+    console.log("openNativeFilePicker called");
+    try {
+      const paths = await pickPdfPaths();
+      if (!paths.length) return;
+      const fakeFiles = paths.map((p) => ({ name: p.split("/").pop(), path: p }));
+      setFiles(fakeFiles);
+      setPdfPaths(paths);
+      setProcessingState("idle");
+    } catch (err) {
+      setBridgeState((s) => ({ ...s, result: `File picker error: ${err?.message ?? err}` }));
+    }
+  }
+
+  async function processDocuments() {
     if (!hasFiles || isProcessing) return;
     setProcessingState("processing");
-    window.setTimeout(() => setProcessingState("complete"), 1200);
+    setBridgeState({ running: true, result: "", lines: [] });
+    const job = {
+      pdf_paths: pdfPaths.length ? pdfPaths : files.map((f) => f.path ?? f.name),
+      last_name: lastName,
+      first_name: firstName,
+      output_folder: outputFolder,
+      generate_excel_review: generateExcel,
+    };
+    try {
+      await runPipeline(job, (line) => {
+        setBridgeState((current) => ({ ...current, lines: [...current.lines, line] }));
+      });
+      setProcessingState("complete");
+      setBridgeState((current) => ({ ...current, running: false, result: "Pipeline completed successfully." }));
+    } catch (error) {
+      setProcessingState("idle");
+      setBridgeState((current) => ({
+        ...current,
+        running: false,
+        result: error instanceof Error ? error.message : String(error),
+      }));
+    }
   }
 
   function addFolder() {
@@ -93,6 +147,7 @@ export function App() {
               isComplete={isComplete}
               dragging={dragging}
               onSelectFiles={selectFiles}
+              onPickFiles={openNativeFilePicker}
               onDragState={setDragging}
             />
 
@@ -116,7 +171,7 @@ export function App() {
             onLastName={setLastName}
             onOutputFolder={setOutputFolder}
             onGenerateExcel={setGenerateExcel}
-            onProcess={simulateProcessing}
+            onProcess={processDocuments}
           />
 
           <InsightGrid
@@ -131,9 +186,21 @@ export function App() {
             activeTab={activeTab}
             bridgeState={bridgeState}
             folders={folders}
+            settings={settings}
+            settingsSaved={settingsSaved}
             onActiveTab={setActiveTab}
             onAddFolder={addFolder}
             onRestoreDefaults={restoreDefaults}
+            onSettingsChange={(key, value) => {
+              setSettings((s) => ({ ...s, [key]: value }));
+              setSettingsSaved(false);
+            }}
+            onSaveSettings={async () => {
+              await saveSettings(settings);
+              if (settings.output_folder) setOutputFolder(settings.output_folder);
+              setSettingsSaved(true);
+              setTimeout(() => setSettingsSaved(false), 2000);
+            }}
             onRenameFolder={(id, value) => {
               setFolders((current) => current.map((item) => (item.id === id ? { ...item, value } : item)));
             }}
@@ -143,10 +210,10 @@ export function App() {
             onRunBridge={async () => {
               setBridgeState({ running: true, result: "", lines: [] });
               try {
-                const result = await runPythonBridge((line) => {
+                await runProbe((line) => {
                   setBridgeState((current) => ({ ...current, lines: [...current.lines, line] }));
                 });
-                setBridgeState((current) => ({ ...current, running: false, result }));
+                setBridgeState((current) => ({ ...current, running: false, result: "Probe completed successfully." }));
               } catch (error) {
                 setBridgeState((current) => ({
                   ...current,
@@ -194,7 +261,7 @@ function Topbar() {
   );
 }
 
-function HeroCard({ files, hasFiles, isProcessing, isComplete, dragging, onSelectFiles, onDragState }) {
+function HeroCard({ files, hasFiles, isProcessing, isComplete, dragging, onSelectFiles, onPickFiles, onDragState }) {
   const title = isProcessing
     ? "Processing documents"
     : isComplete
@@ -219,7 +286,7 @@ function HeroCard({ files, hasFiles, isProcessing, isComplete, dragging, onSelec
         <PacketStrip files={files} />
       </div>
 
-      <label
+      <div
         className={`drop-zone ${dragging ? "is-dragging" : ""}`}
         onDragOver={(event) => {
           event.preventDefault();
@@ -232,14 +299,13 @@ function HeroCard({ files, hasFiles, isProcessing, isComplete, dragging, onSelec
           onSelectFiles(event.dataTransfer.files);
         }}
       >
-        <input type="file" accept="application/pdf,.pdf" multiple hidden onChange={(event) => onSelectFiles(event.target.files)} />
         <div className="paper-stack" aria-hidden="true"><span /><span /><strong>PDF</strong></div>
         <div>
           <p className="drop-title">{title}</p>
           <p className="drop-copy">{copy}</p>
-          <span className="button secondary">Choose PDFs</span>
         </div>
-      </label>
+      </div>
+      <button type="button" className="button secondary" style={{marginTop: "12px", alignSelf: "center"}} onClick={onPickFiles}>Choose PDFs</button>
     </article>
   );
 }
@@ -334,9 +400,13 @@ function ConfigShell({
   activeTab,
   bridgeState,
   folders,
+  settings,
+  settingsSaved,
   onActiveTab,
   onAddFolder,
   onRestoreDefaults,
+  onSettingsChange,
+  onSaveSettings,
   onRenameFolder,
   onToggleFolder,
   onRunBridge,
@@ -366,16 +436,127 @@ function ConfigShell({
           </article>
           <PatternPanel />
         </div>
+      ) : activeTab === "templates" ? (
+        <TemplatesPanel settings={settings} settingsSaved={settingsSaved} onSettingsChange={onSettingsChange} onSaveSettings={onSaveSettings} />
+      ) : activeTab === "bedrock" ? (
+        <BedrockPanel settings={settings} settingsSaved={settingsSaved} onSettingsChange={onSettingsChange} onSaveSettings={onSaveSettings} />
       ) : activeTab === "diagnostics" ? (
         <BridgePanel bridgeState={bridgeState} onRunBridge={onRunBridge} />
-      ) : (
-        <div className="tab-panel active settings-placeholder">
-          <p className="eyebrow">{tabs.find(([id]) => id === activeTab)?.[1]}</p>
-          <h3>{activeTab === "templates" ? "Template management will live here." : activeTab === "bedrock" ? "Admin-only model and region settings." : "Support logs stay outside client output."}</h3>
-          <p>{activeTab === "templates" ? "Future implementation should map office-approved workbook templates to generated review documents." : activeTab === "bedrock" ? "Keep Sonnet as default and route inference through Bedrock only." : "Internal diagnostics belong in ~/.tax_processor/logs/app.log."}</p>
-        </div>
-      )}
+      ) : null}
     </section>
+  );
+}
+
+function SettingsField({ label, value, onChange, placeholder, note, onBrowse, browseLabel = "Browse…" }) {
+  return (
+    <div className="settings-field">
+      <label>
+        <span className="settings-label">{label}</span>
+        {note && <span className="settings-note">{note}</span>}
+        <div className="settings-input-row">
+          <input
+            type="text"
+            value={value}
+            placeholder={placeholder || ""}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {onBrowse && (
+            <button type="button" className="button secondary" onClick={onBrowse}>{browseLabel}</button>
+          )}
+        </div>
+      </label>
+    </div>
+  );
+}
+
+function SaveBar({ saved, onSave }) {
+  return (
+    <div className="settings-save-bar">
+      <button type="button" className="button primary" onClick={onSave}>
+        {saved ? "Saved ✓" : "Save Settings"}
+      </button>
+      <p className="support-note">Saved to ~/.tax_processor/config.json — shared between Tkinter and Tauri.</p>
+    </div>
+  );
+}
+
+function TemplatesPanel({ settings, settingsSaved, onSettingsChange, onSaveSettings }) {
+  return (
+    <div className="tab-panel active settings-placeholder">
+      <p className="eyebrow">Excel Templates</p>
+      <h3>Office workbook templates</h3>
+      <p>These templates are copied and populated for each client packet. Both are required to generate Excel review documents.</p>
+      <div className="settings-fields">
+        <SettingsField
+          label="1040 Template"
+          value={settings.template_1040}
+          onChange={(v) => onSettingsChange("template_1040", v)}
+          placeholder="Path to 1040 .xlsx template"
+          note="Required for Excel output"
+          onBrowse={async () => {
+            const path = await pickXlsxFile();
+            if (path) onSettingsChange("template_1040", path);
+          }}
+        />
+        <SettingsField
+          label="DoubleCheck Template"
+          value={settings.template_doublecheck}
+          onChange={(v) => onSettingsChange("template_doublecheck", v)}
+          placeholder="Path to DoubleCheck .xlsx template"
+          note="Required for Excel output"
+          onBrowse={async () => {
+            const path = await pickXlsxFile();
+            if (path) onSettingsChange("template_doublecheck", path);
+          }}
+        />
+        <SettingsField
+          label="Default Output Folder"
+          value={settings.output_folder}
+          onChange={(v) => onSettingsChange("output_folder", v)}
+          placeholder="e.g. /Users/you/Desktop"
+          note="Pre-fills the output folder on the main screen"
+          onBrowse={async () => {
+            const path = await pickFolder();
+            if (path) onSettingsChange("output_folder", path);
+          }}
+        />
+      </div>
+      <SaveBar saved={settingsSaved} onSave={onSaveSettings} />
+    </div>
+  );
+}
+
+function BedrockPanel({ settings, settingsSaved, onSettingsChange, onSaveSettings }) {
+  return (
+    <div className="tab-panel active settings-placeholder">
+      <p className="eyebrow">AWS / Bedrock</p>
+      <h3>Inference settings</h3>
+      <p>All LLM calls route through AWS Bedrock. Changes take effect on the next packet processed.</p>
+      <div className="settings-fields">
+        <SettingsField
+          label="AWS Region"
+          value={settings.aws_region}
+          onChange={(v) => onSettingsChange("aws_region", v)}
+          placeholder="us-east-1"
+          note="Default: us-east-1"
+        />
+        <SettingsField
+          label="AWS Profile"
+          value={settings.aws_profile}
+          onChange={(v) => onSettingsChange("aws_profile", v)}
+          placeholder="Leave blank to use default credential chain"
+          note="Optional — named profile from ~/.aws/credentials"
+        />
+        <SettingsField
+          label="Bedrock Model ID"
+          value={settings.bedrock_model_id}
+          onChange={(v) => onSettingsChange("bedrock_model_id", v)}
+          placeholder="us.anthropic.claude-sonnet-4-6"
+          note="Default: us.anthropic.claude-sonnet-4-6"
+        />
+      </div>
+      <SaveBar saved={settingsSaved} onSave={onSaveSettings} />
+    </div>
   );
 }
 

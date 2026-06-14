@@ -97,39 +97,38 @@ Create a tiny desktop shell proof:
 
 Only after that spike should the real pipeline be connected.
 
-## Current Spike State
+## Completed
 
 - React UI has a Diagnostics tab with a `Run Python Bridge Test` action.
 - Tauri scaffold exists under `frontend/src-tauri/`.
-- `frontend/bridge/progress_probe.py` is packaged as a Tauri sidecar with
-  PyInstaller.
-- Rust command `run_python_bridge` invokes the packaged sidecar.
-- Python probe prints progress JSON lines.
-- React listens for `python-bridge-progress` events.
-- `npm run build` succeeds for the React frontend.
-- `npm run build:sidecar` succeeds for the harmless Python probe sidecar.
 - Rust/Cargo is installed locally.
-- `cargo check` succeeds for the Tauri shell.
 - `npm run dev:tauri` launches the macOS Tauri shell.
-- `npm run build:tauri` builds the macOS `.app` and `.dmg` with the sidecar
-  included in the app bundle.
-- Manual Diagnostics button validation succeeds in the Tauri window:
-  - Python process starts.
-  - Progress messages stream into React.
-  - Final success payload returns to the UI.
+- `npm run build:tauri` builds the macOS `.app` and `.dmg` with the sidecar included.
+- Decision: continue with Tauri + React + Python sidecars unless Windows packaging disproves the path.
+- **Sidecar consolidation**: replaced `tax-bridge-probe` + `tax-pipeline-runner` with a single
+  `tax-runner` binary (`frontend/bridge/tax_runner.py`) with two subcommands:
+  - `tax-runner probe` — diagnostics, proves the binary is alive
+  - `tax-runner pipeline` — reads a JSON job from stdin, runs the real pipeline
+- `build_sidecar.py` updated to build only `tax-runner`.
+- `tauri.conf.json` `externalBin` updated to `binaries/tax-runner` only.
+- Tauri Rust commands replaced: `run_probe` and `run_pipeline` (stdin-based JSON job input).
+- `tauri-plugin-dialog` added (Cargo.toml, lib.rs, `capabilities/default.json`) for native file picker.
+- `tauriBridge.js` exports `pickPdfPaths`, `runProbe`, `runPipeline`.
+- React "Process Documents" button wired to `runPipeline` with real job JSON.
+- Bedrock call telemetry logging added to `bedrock_client.py` (invoke_start, invoke_success, invoke_error).
+- `configure_app_logging()` called in `tax_runner.py` so sidecar logs to `~/.tax_processor/logs/app.log`.
+- **Real packet validated end-to-end through React/Tauri UI** — Bedrock calls confirmed in app.log.
+- Tkinter UI (`app.py`) preserved as fallback.
 
-## Remaining Merge Concerns
+## Pending Tasks
 
-- Decide whether macOS-only packaging proof is enough for merge, or whether
-  Windows packaging must be proven first.
-- Replace the harmless sidecar probe with the real pipeline entrypoint before
-  calling this production-ready.
-- Keep the current Python/Tkinter app path available until the real pipeline
-  runs through the React/Tauri shell.
+- Wire settings UI in React — AWS region/profile, template paths, default output folder.
+- Normalize staff-facing errors separately from diagnostic detail (currently raw sidecar JSON surfaces in UI).
+- Validate Windows packaging for `tax-runner` sidecar.
+- Remove debug `console.log` statements from `tauriBridge.js` and `App.jsx` once stable.
 
 ## Open Questions
 
-- Can Tauri package the real Python pipeline sidecar cleanly on Windows?
 - Should the real pipeline bridge remain Tauri command-based or move to a local
   HTTP process for longer-running jobs?
 - How should errors be normalized for staff-facing messages versus diagnostics?

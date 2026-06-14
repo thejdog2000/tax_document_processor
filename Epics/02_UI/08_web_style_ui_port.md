@@ -40,7 +40,8 @@ frontend/
 ```
 
 The React scaffold is intentionally not Electron. The current architecture bias
-is Tauri + React + Python sidecar/bridge, pending
+is Tauri + React + Python sidecars. The diagnostic sidecar spike is complete;
+the real pipeline runner is tracked in
 `Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md`.
 
 ## Scope
@@ -120,9 +121,22 @@ Internal diagnostic logs must remain outside client output folders:
 - Record unresolved architecture decisions in `Epics/05_Architecture/01_decision_spike.md` or the more specific `Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md` instead of guessing.
 - Keep changes incremental and reversible.
 
+## Completed Architecture Decisions
+
+- Use Tauri instead of Electron for the current desktop shell path.
+- Keep Python as the processing engine for now.
+- Consolidated two sidecars (`tax-bridge-probe`, `tax-pipeline-runner`) into one (`tax-runner`) with `probe` and `pipeline` subcommands.
+- "Process Documents" button wired to real pipeline — real packets confirmed working end-to-end through React/Tauri.
+- Native file picker via `tauri-plugin-dialog` (no browser File API path limitations).
+- Tkinter UI preserved as fallback.
+
+## Remaining Acceptance Criteria
+
+- [ ] Settings tab in React wired to real `~/.tax_processor/config.json` (AWS region/profile, template paths, default output folder)
+- [ ] Staff-facing errors normalized — currently raw sidecar JSON surfaces in the UI
+- [ ] Windows packaging validated for `tax-runner` sidecar
+
 ## Open Questions
 
-- Should the web-style shell be Tauri or Electron?
-- Should the Python pipeline run as a local child process, local HTTP service, or packaged sidecar?
 - Should file/folder organization settings be global per workstation or exportable per office?
 - Who can edit organization templates in a multi-staff office?

@@ -1,0 +1,93 @@
+DOCUMENT LOG
+Client: , 
+Tax Year: 2025
+=======================================================
+
+FILE RENAMES
+----------------------------------------
+  W2_PelhamCitySchools_2025.pdf
+    → W-2_PelhamCitySchools_2025.pdf
+
+  W2_HartwellManufacturing_2025.pdf
+    → W-2_HartwellManufacturin_2025.pdf
+
+VALIDATION FLAGS
+----------------------------------------
+  None — all documents passed validation
+
+OPEN ITEMS
+----------------------------------------
+  Birthdates assumed (age 40) — confirm with client.
+  If filer or spouse is 65+, senior standard deduction add-on applies.
+  FILING STATUS: Only one name found (ALEX RIVERA) — defaulted to Single, confirm with client
+
+EXTRACTED VALUES SUMMARY
+----------------------------------------
+  W-2_PelhamCitySchools_2025.pdf
+    box_1: 12300.0
+    box_2: 1476.0
+    box_3: 12300.0
+    box_4: 762.6
+    box_5: 12300.0
+    box_6: 178.35
+    box_12_code: D
+    box_12_amount: 1200.0
+    box_15: AL
+    box_16: 12300.0
+    box_17: 553.5
+    notes: Retirement plan box is checked (Box 13). Document is marked as SAMPLE — FOR PIPELINE TESTING ONLY. SS tax check: 6.2% of $12,300 = $762.60 matches box_4 exactly. Medicare tax check: 1.45% of $12,300 = $178.35 matches box_6 exactly. 401k deferral of $1,200 is within the $23,500 limit.
+
+  W-2_HartwellManufacturin_2025.pdf
+    box_1: 68420.0
+    box_2: 8210.4
+    box_3: 68420.0
+    box_4: 4242.04
+    box_5: 68420.0
+    box_6: 992.09
+    box_12_code: D
+    box_12_amount: 6500.0
+    box_15: AL
+    box_16: 68420.0
+    box_17: 3079.0
+    notes: Retirement plan box is marked X per box 13. Document is marked SAMPLE — FOR PIPELINE TESTING ONLY. SS tax check: 6.2% of $68,420.00 = $4,242.04 matches box_4 exactly. Medicare tax check: 1.45% of $68,420.00 = $992.09 matches box_6 exactly. 401k deferral of $6,500.00 is within the $23,500 limit.
+
+REVIEWER FIELD METADATA
+----------------------------------------
+  [W-2_PelhamCitySchools_2025.pdf] form_type: confidence 99 p.1 — evidence: W-2 Wage and Tax Statement
+  [W-2_PelhamCitySchools_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [W-2_PelhamCitySchools_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: Employee's name: Alex Rivera
+  [W-2_PelhamCitySchools_2025.pdf] spouse_name: confidence 99 p.1 — evidence: No second name present in document
+  [W-2_PelhamCitySchools_2025.pdf] all_names: confidence 99 p.1 — evidence: Employee's name: Alex Rivera
+  [W-2_PelhamCitySchools_2025.pdf] payer_name: confidence 99 p.1 — evidence: Employer's name: Pelham City Schools
+  [W-2_PelhamCitySchools_2025.pdf] state: confidence 99 p.1 — evidence: State: AL
+  [W-2_PelhamCitySchools_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status information present in document — notes: W-2 forms do not include filing status
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Wages, tips, other compensation $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_2: confidence 99 p.1 — evidence: 2 Federal income tax withheld $1,476.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_3: confidence 99 p.1 — evidence: 3 Social security wages $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Social security tax withheld $762.60
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_5: confidence 99 p.1 — evidence: 5 Medicare wages and tips $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_6: confidence 99 p.1 — evidence: 6 Medicare tax withheld $178.35
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_12_code: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_12_amount: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals $1,200.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_15: confidence 99 p.1 — evidence: 15 State AL
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_16: confidence 99 p.1 — evidence: 16 State wages, tips, etc. $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_17: confidence 99 p.1 — evidence: 17 State income tax withheld $553.50
+  [W-2_HartwellManufacturin_2025.pdf] form_type: confidence 99 p.1 — evidence: W-2 Wage and Tax Statement
+  [W-2_HartwellManufacturin_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [W-2_HartwellManufacturin_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: e Employee's name, address, and ZIP code Alex Rivera
+  [W-2_HartwellManufacturin_2025.pdf] spouse_name: confidence 99 p.1 — evidence: Only one employee name present in document
+  [W-2_HartwellManufacturin_2025.pdf] all_names: confidence 99 p.1 — evidence: Alex Rivera 142 Mockingbird Lane, Pelham, AL 35124
+  [W-2_HartwellManufacturin_2025.pdf] payer_name: confidence 99 p.1 — evidence: Employer's name, address, and ZIP code Hartwell Manufacturing Co.
+  [W-2_HartwellManufacturin_2025.pdf] state: confidence 99 p.1 — evidence: 15 State AL
+  [W-2_HartwellManufacturin_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status information present in document — notes: W-2 forms do not contain filing status; none was provided in notes
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Wages, tips, other compensation $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_2: confidence 99 p.1 — evidence: 2 Federal income tax withheld $8,210.40
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_3: confidence 99 p.1 — evidence: 3 Social security wages $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Social security tax withheld $4,242.04
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_5: confidence 99 p.1 — evidence: 5 Medicare wages and tips $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_6: confidence 99 p.1 — evidence: 6 Medicare tax withheld $992.09
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_12_code: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_12_amount: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals $6,500.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_15: confidence 99 p.1 — evidence: 15 State AL
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_16: confidence 99 p.1 — evidence: 16 State wages, tips, etc. $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_17: confidence 99 p.1 — evidence: 17 State income tax withheld $3,079.00

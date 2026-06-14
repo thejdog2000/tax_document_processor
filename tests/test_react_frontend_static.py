@@ -22,6 +22,7 @@ def main():
     tauri_conf = (FRONTEND_DIR / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8")
     tauri_lib = (FRONTEND_DIR / "src-tauri" / "src" / "lib.rs").read_text(encoding="utf-8")
     tauri_cargo = (FRONTEND_DIR / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8")
+    pipeline_runner = (FRONTEND_DIR / "bridge" / "pipeline_runner.py").read_text(encoding="utf-8")
     dev_requirements = (PROJECT_DIR / "requirements-dev.txt").read_text(encoding="utf-8")
 
     if package.get("scripts", {}).get("dev") != "vite":
@@ -74,6 +75,11 @@ def main():
 
     if "externalBin" not in tauri_config.get("bundle", {}):
         failures.append("Tauri config should package the Python bridge sidecar.")
+    external_bins = tauri_config.get("bundle", {}).get("externalBin", [])
+    if "binaries/tax-bridge-probe" not in external_bins:
+        failures.append("Tauri config should keep the diagnostic bridge sidecar.")
+    if "binaries/tax-pipeline-runner" not in external_bins:
+        failures.append("Tauri config should package the real pipeline runner sidecar.")
 
     if "tauri-plugin-shell" not in tauri_cargo:
         failures.append("Tauri bridge should use the shell plugin for sidecars.")
@@ -83,6 +89,10 @@ def main():
 
     if "pyinstaller" not in dev_requirements.lower():
         failures.append("requirements-dev.txt should include PyInstaller for sidecar packaging.")
+
+    for text in ("TaxPipeline", "validate-only", "generate_excel_review", "pdf_paths"):
+        if text not in pipeline_runner:
+            failures.append(f"Pipeline runner missing {text!r}.")
 
     if failures:
         print("React frontend static checks failed:")

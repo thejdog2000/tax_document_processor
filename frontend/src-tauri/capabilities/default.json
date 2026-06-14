@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default desktop permissions for the Tax Document Processor spike.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "dialog:default", "shell:allow-stdin-write"]
 }

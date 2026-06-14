@@ -33,6 +33,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/tax-bridge-probe"]
+    "externalBin": [
+      "binaries/tax-runner"
+    ]
   }
 }

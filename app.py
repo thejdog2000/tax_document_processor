@@ -14,6 +14,12 @@ try:
     import tkinterdnd2 as tkdnd
 except ModuleNotFoundError:
     tkdnd = None
+except Exception:
+    tkdnd = None
+
+# Some macOS Python/Tk combinations import tkinterdnd2 successfully but fail
+# when initializing tkdnd. Keep the legacy app usable via click-to-browse.
+tkdnd = None
 
 from app_logging import configure_app_logging
 from bedrock_client import DEFAULT_BEDROCK_MODEL_ID
@@ -22,19 +28,21 @@ from settings import Settings
 # ─────────────────────────────────────────────────────────────────────────────
 # Colors
 # ─────────────────────────────────────────────────────────────────────────────
-CLR_DARK   = "#1e2b3c"
-CLR_ACCENT = "#2980b9"
-CLR_GREEN  = "#27ae60"
-CLR_WARN   = "#e67e22"
-CLR_BG     = "#f5f6fa"
-CLR_CARD   = "#ffffff"
-CLR_TEXT   = "#2c3e50"
-CLR_MUTED  = "#7f8c8d"
-CLR_DROP   = "#eaf4fb"
-CLR_DROPBORDER = "#aed6f1"
-CLR_DROPOK = "#d5f5e3"
-CLR_LOG_BG = "#1e1e2e"
-CLR_LOG_FG = "#cdd6f4"
+CLR_DARK   = "#111827"
+CLR_ACCENT = "#38bdf8"
+CLR_GREEN  = "#16a34a"
+CLR_WARN   = "#f59e0b"
+CLR_BG     = "#0f172a"
+CLR_CARD   = "#1e293b"
+CLR_TEXT   = "#f8fafc"
+CLR_MUTED  = "#cbd5e1"
+CLR_DROP   = "#172554"
+CLR_DROPBORDER = "#38bdf8"
+CLR_DROPOK = "#14532d"
+CLR_INPUT  = "#f8fafc"
+CLR_INPUT_FG = "#111827"
+CLR_LOG_BG = "#020617"
+CLR_LOG_FG = "#e2e8f0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Settings dialog
@@ -44,7 +52,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(parent)
         self.settings = settings
         self.title("Settings")
-        self.geometry("620x390")
+        self.geometry("820x430")
         self.resizable(False, False)
         self.configure(bg=CLR_BG)
         self.grab_set()
@@ -65,7 +73,10 @@ class SettingsDialog(tk.Toplevel):
                 row=row_n, column=0, sticky="w", pady=5)
             var = tk.StringVar(value=self.settings.get(default_key, ""))
             entry = tk.Entry(frame, textvariable=var, width=38,
-                             font=("Segoe UI", 10), show="*" if masked else "")
+                             font=("Segoe UI", 10), show="*" if masked else "",
+                             bg=CLR_INPUT, fg=CLR_INPUT_FG,
+                             insertbackground=CLR_INPUT_FG,
+                             relief="solid", bd=1)
             entry.grid(row=row_n, column=1, padx=(10, 4), sticky="w")
             if browse:
                 def _browse(e=entry, ft=filetypes):
@@ -73,7 +84,7 @@ class SettingsDialog(tk.Toplevel):
                     if path:
                         e.delete(0, "end")
                         e.insert(0, path)
-                tk.Button(frame, text="Browse…", font=("Segoe UI", 9),
+                tk.Button(frame, text="Browse…", font=("Segoe UI", 9, "bold"),
                           command=_browse, bg=CLR_ACCENT, fg="white",
                           relief="flat", padx=8).grid(row=row_n, column=2, padx=2)
             return var
@@ -94,7 +105,7 @@ class SettingsDialog(tk.Toplevel):
             folder = filedialog.askdirectory()
             if folder:
                 self._v_out.set(folder)
-        tk.Button(frame, text="Browse…", font=("Segoe UI", 9),
+        tk.Button(frame, text="Browse…", font=("Segoe UI", 9, "bold"),
                   command=_browse_out, bg=CLR_ACCENT, fg="white",
                   relief="flat", padx=8).grid(row=5, column=2, padx=2)
 
@@ -116,7 +127,7 @@ class SettingsDialog(tk.Toplevel):
 # ─────────────────────────────────────────────────────────────────────────────
 # Main application window
 # ─────────────────────────────────────────────────────────────────────────────
-class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
+class TaxProcessorApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Tax Document Processor — 2025")
@@ -231,6 +242,34 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
             self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
         self.drop_zone.bind("<Button-1>", self._browse_files)
 
+        tk.Button(
+            outer,
+            text="Select PDF Documents…",
+            font=("Segoe UI", 11, "bold"),
+            bg=CLR_ACCENT,
+            fg="#0f172a",
+            relief="flat",
+            padx=18,
+            pady=7,
+            cursor="hand2",
+            command=self._browse_files,
+        ).pack(anchor="w", pady=(8, 0))
+
+        sample_dir = Path(__file__).parent / "sample_docs"
+        if sample_dir.exists():
+            tk.Button(
+                outer,
+                text="Use Sample Docs",
+                font=("Segoe UI", 10, "bold"),
+                bg=CLR_CARD,
+                fg=CLR_TEXT,
+                relief="flat",
+                padx=14,
+                pady=6,
+                cursor="hand2",
+                command=self._use_sample_docs,
+            ).pack(anchor="w", pady=(6, 0))
+
         label = "No files selected"
         if not tkdnd:
             label += " — drag/drop unavailable; click to browse"
@@ -256,7 +295,8 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
             tk.Label(card, text=label, font=("Segoe UI", 10),
                      bg=CLR_CARD, fg=CLR_TEXT).grid(row=row, column=col, sticky="w", padx=(0, 6))
             e = tk.Entry(card, font=("Segoe UI", 10), width=22,
-                         relief="solid", bd=1)
+                         relief="solid", bd=1, bg=CLR_INPUT, fg=CLR_INPUT_FG,
+                         insertbackground=CLR_INPUT_FG)
             e.grid(row=row, column=col + 1, padx=(0, 20), sticky="w")
             return e
 
@@ -268,7 +308,8 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         self.tax_year_var = tk.StringVar(value="2025")
         tk.Entry(card, textvariable=self.tax_year_var,
                  font=("Segoe UI", 10), width=22,
-                 relief="solid", bd=1, state="readonly").grid(
+                 relief="solid", bd=1, state="readonly",
+                 readonlybackground=CLR_INPUT, fg=CLR_INPUT_FG).grid(
                      row=3, column=1, padx=(0, 20), sticky="w", pady=(10, 0))
         self.last_name.bind("<KeyRelease>", self._refresh_workflow_state)
         self.first_name.bind("<KeyRelease>", self._refresh_workflow_state)
@@ -288,7 +329,8 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
         self.output_var = tk.StringVar(value=default_out)
         tk.Entry(row, textvariable=self.output_var,
                  font=("Segoe UI", 9), width=42,
-                 relief="solid", bd=1).pack(side="left", padx=(8, 6))
+                 relief="solid", bd=1, bg=CLR_INPUT, fg=CLR_INPUT_FG,
+                 insertbackground=CLR_INPUT_FG).pack(side="left", padx=(8, 6))
 
         tk.Button(row, text="Browse…", font=("Segoe UI", 9),
                   bg=CLR_ACCENT, fg="white", relief="flat", padx=8,
@@ -384,14 +426,36 @@ class TaxProcessorApp((tkdnd.Tk if tkdnd else tk.Tk)):
             self._refresh_workflow_state()
 
     def _browse_files(self, _event=None):
+        sample_dir = Path(__file__).parent / "sample_docs"
+        initial_dir = sample_dir if sample_dir.exists() else Path.home()
         files = filedialog.askopenfilenames(
             title="Select PDF tax documents",
-            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
+            initialdir=str(initial_dir),
         )
         if files:
-            self.dropped_files = list(files)
+            pdfs = [f for f in files if str(f).lower().endswith(".pdf")]
+            skipped = [f for f in files if not str(f).lower().endswith(".pdf")]
+            if skipped:
+                messagebox.showwarning(
+                    "Non-PDF Files",
+                    f"Only PDF files are accepted.\nSkipped: {len(skipped)} non-PDF file(s).",
+                )
+            if not pdfs:
+                messagebox.showwarning("No PDFs", "Please select one or more PDF files.")
+                return
+            self.dropped_files = list(pdfs)
             self._refresh_drop_zone()
             self._refresh_workflow_state()
+
+    def _use_sample_docs(self):
+        sample_dir = Path(__file__).parent / "sample_docs"
+        pdfs = sorted(str(path) for path in sample_dir.glob("*.pdf"))
+        if not pdfs:
+            messagebox.showwarning("No Sample PDFs", f"No PDFs found in {sample_dir}")
+            return
+        self.dropped_files = pdfs
+        self._refresh_drop_zone()
+        self._refresh_workflow_state()
 
     def _refresh_drop_zone(self):
         n = len(self.dropped_files)

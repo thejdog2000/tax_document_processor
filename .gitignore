@@ -33,8 +33,13 @@ frontend/src-tauri/icons/ios/
 frontend/src-tauri/icons/Square*Logo.png
 frontend/src-tauri/icons/StoreLogo.png
 frontend/src-tauri/binaries/tax-bridge-probe-*
+frontend/src-tauri/binaries/tax-pipeline-runner-*
+frontend/src-tauri/binaries/tax-runner-*
 frontend/bridge/build/
 frontend/bridge/dist/
+
+# Literal ~ path artifacts (Tauri output that landed inside the repo)
+frontend/src-tauri/~/
 
 # App config (contains API key)
 ~/.tax_processor/

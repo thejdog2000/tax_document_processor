@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the harmless Python bridge probe as a Tauri sidecar binary."""
+"""Build Python bridge scripts as Tauri sidecar binaries."""
 from __future__ import annotations
 
 import shutil
@@ -12,10 +12,11 @@ from pathlib import Path
 BRIDGE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BRIDGE_DIR.parent
 PROJECT_DIR = FRONTEND_DIR.parent
-SOURCE = BRIDGE_DIR / "progress_probe.py"
 BUILDER = Path(__file__).resolve()
 BINARIES_DIR = FRONTEND_DIR / "src-tauri" / "binaries"
-SIDECAR_NAME = "tax-bridge-probe"
+SIDECARS = [
+    ("tax-runner", BRIDGE_DIR / "tax_runner.py"),
+]
 
 
 def venv_python() -> Path:
@@ -61,45 +62,43 @@ def pyinstaller_command() -> list[str]:
     return [sys.executable, "-m", "PyInstaller"]
 
 
-def is_current(sidecar_binary: Path) -> bool:
+def is_current(source: Path, sidecar_binary: Path) -> bool:
     if "--force" in sys.argv:
         return False
     if not sidecar_binary.exists():
         return False
-    newest_source = max(SOURCE.stat().st_mtime, BUILDER.stat().st_mtime)
+    newest_source = max(source.stat().st_mtime, BUILDER.stat().st_mtime)
     return sidecar_binary.stat().st_mtime >= newest_source
 
 
-def main() -> int:
-    reexec_in_venv_if_available()
-
-    if not SOURCE.exists():
-        raise SystemExit(f"Missing sidecar source: {SOURCE}")
-
-    target_triple = host_triple()
+def build_sidecar(name: str, source: Path, target_triple: str) -> None:
+    if not source.exists():
+        raise SystemExit(f"Missing sidecar source: {source}")
     extension = ".exe" if sys.platform == "win32" else ""
-    dist_binary = BRIDGE_DIR / "dist" / f"{SIDECAR_NAME}{extension}"
-    sidecar_binary = BINARIES_DIR / f"{SIDECAR_NAME}-{target_triple}{extension}"
+    dist_binary = BRIDGE_DIR / "dist" / f"{name}{extension}"
+    sidecar_binary = BINARIES_DIR / f"{name}-{target_triple}{extension}"
 
     BINARIES_DIR.mkdir(parents=True, exist_ok=True)
 
-    if is_current(sidecar_binary):
+    if is_current(source, sidecar_binary):
         print(f"Tauri sidecar is current: {sidecar_binary.relative_to(PROJECT_DIR)}")
-        return 0
+        return
 
     command = [
         *pyinstaller_command(),
         "--onefile",
         "--clean",
         "--name",
-        SIDECAR_NAME,
+        name,
         "--distpath",
         str(BRIDGE_DIR / "dist"),
         "--workpath",
         str(BRIDGE_DIR / "build"),
         "--specpath",
         str(BRIDGE_DIR / "build"),
-        str(SOURCE),
+        "--paths",
+        str(PROJECT_DIR),
+        str(source),
     ]
     env = os.environ.copy()
     env["PYINSTALLER_CONFIG_DIR"] = str(BRIDGE_DIR / "build" / "pyinstaller-cache")
@@ -111,6 +110,14 @@ def main() -> int:
     shutil.copy2(dist_binary, sidecar_binary)
     sidecar_binary.chmod(0o755)
     print(f"Built Tauri sidecar: {sidecar_binary.relative_to(PROJECT_DIR)}")
+
+
+def main() -> int:
+    reexec_in_venv_if_available()
+
+    target_triple = host_triple()
+    for name, source in SIDECARS:
+        build_sidecar(name, source, target_triple)
     return 0
 
 

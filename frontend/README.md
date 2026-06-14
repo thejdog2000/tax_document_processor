@@ -1,89 +1,81 @@
-# React Frontend
+# React / Tauri Frontend
 
-Real React/Vite implementation path for the web-style desktop UI.
+The primary UI for Tax Document Processor. Built with React + Vite inside a Tauri v2 desktop shell, with a Python sidecar for pipeline execution.
 
-This is not Electron. The intended architecture bias is:
+## Architecture
 
-```text
-Tauri + React frontend + Python pipeline sidecar/bridge
+```
+Tauri (Rust shell)
+  └── React / Vite (UI)
+  └── tax-runner (Python sidecar binary)
+        ├── probe       — diagnostics, proves binary is alive
+        ├── pipeline    — full Bedrock extraction pipeline (job JSON via stdin)
+        └── settings    — read/write ~/.tax_processor/config.json (JSON via stdin/stdout)
 ```
 
-Electron remains a fallback only if the Tauri/Python packaging spike fails or
-slows the product down too much.
+IPC pattern: Rust writes JSON to sidecar stdin, drops the write handle (signals EOF), reads JSON-lines events from stdout, and emits them to React as Tauri events.
 
-## Current Scope
+Settings and config are shared with the Tkinter UI — both read/write `~/.tax_processor/config.json`.
 
-- Componentized version of `ui_prototype/`.
-- Backend-free state for PDF selection, drag/drop, processing simulation, output preview, and settings tabs.
-- Tauri shell scaffold committed.
-- Harmless Python bridge probe committed and packaged as a sidecar.
-- No tax pipeline hookup yet.
-
-## Run
-
-Install dependencies first:
+## Running in development
 
 ```bash
 cd /path/to/tax_document_processor/frontend
-npm install
-npm run dev
-```
 
-Run the Tauri bridge spike:
-
-```bash
-cd /path/to/tax_document_processor/frontend
+# Make sure Python venv is active and Rust is in PATH
+source ../.venv/bin/activate
 source "$HOME/.cargo/env"
-python3 -m pip install -r ../requirements-dev.txt
-npm run dev:tauri
+
+npm install          # first time only
+npm run dev:tauri    # builds sidecar, starts Vite, launches Tauri window
 ```
 
-This requires Rust/Cargo to be installed locally. If `cargo --version` fails,
-install Rust before running the Tauri shell.
+`dev:tauri` runs `build:sidecar` (PyInstaller) then `tauri dev`. The first run takes ~3 minutes for Cargo to compile. Subsequent runs are faster.
 
-Build a local macOS desktop bundle:
+## Building a distributable app
 
 ```bash
-cd /path/to/tax_document_processor/frontend
-source "$HOME/.cargo/env"
-python3 -m pip install -r ../requirements-dev.txt
 npm run build:tauri
 ```
 
-Current proof status:
+Produces a macOS `.app` and `.dmg` in `src-tauri/target/release/bundle/`.
 
-- React production build succeeds.
-- Python bridge probe succeeds.
-- Python bridge probe packages as a Tauri sidecar with PyInstaller.
-- Tauri `cargo check` succeeds.
-- Tauri dev shell launches on macOS.
-- Diagnostics button in the Tauri window streams sidecar progress and returns success.
-- Tauri macOS `.app` and `.dmg` build succeeds with the sidecar included.
+## Key source files
 
-Still pending before replacing the current app path:
+| File | Purpose |
+|------|---------|
+| `src/App.jsx` | Main React UI — intake, file selection, pipeline progress, settings panels |
+| `src/tauriBridge.js` | All Tauri API calls — pickPdfPaths, runPipeline, loadSettings, saveSettings, pickFolder, pickXlsxFile |
+| `src/styles.css` | App styles (imports from `../ui_prototype/styles.css`) |
+| `bridge/tax_runner.py` | Python sidecar entrypoint (probe / pipeline / settings subcommands) |
+| `bridge/build_sidecar.py` | PyInstaller build script — outputs to `src-tauri/binaries/tax-runner` |
+| `src-tauri/src/lib.rs` | Rust Tauri commands: run_probe, run_pipeline, load_settings, save_settings |
+| `src-tauri/capabilities/default.json` | Shell + dialog permissions |
+| `src-tauri/tauri.conf.json` | Tauri config — window size, sidecar binary path |
 
-- Real pipeline invocation from the bridge.
-- Replacing the harmless sidecar probe with the real tax pipeline sidecar.
-- Windows packaging proof.
+## Tauri permissions
 
-## Python Sidecar Meaning
+The app uses two Tauri plugins:
+- `tauri-plugin-shell` — spawn the sidecar, read stdout, write stdin
+- `tauri-plugin-dialog` — native macOS file/folder pickers
 
-A Python sidecar is a bundled Python runtime or executable that ships with the
-desktop app. The installed app can run the tax pipeline without requiring office
-workstations to already have Python, pip packages, or matching local paths.
+Both are registered in `src-tauri/Cargo.toml` and `capabilities/default.json`.
 
-The current spike packages only the harmless probe sidecar, so it proves the
-desktop packaging pattern. The real tax pipeline still needs its own sidecar
-entrypoint before this replaces the current app path.
+## Confirmed working
 
-## Next Step
+- React production build
+- Python sidecar builds with PyInstaller and ships in the `.app`
+- Tauri `cargo check` and full dev build on macOS
+- Diagnostics probe streams progress from sidecar to React
+- Full pipeline (multi-PDF → Bedrock → Excel workbooks) runs end-to-end
+- Bedrock telemetry logs to `~/.tax_processor/logs/app.log`
+- Native file picker (PDF and folder selection)
+- Settings load from and save to `~/.tax_processor/config.json`
+- Saved output folder pre-fills the main screen on launch
 
-Before connecting the real Python pipeline, complete:
+## Not yet done
 
-```text
-Epics/05_Architecture/03_ui_shell_and_pipeline_bridge.md
-```
-
-The first bridge spike proves that the chosen shell can stream progress from
-Python to the React UI. It intentionally runs `bridge/progress_probe.py`, not the
-tax processing pipeline.
+- UI redesign (branch: `ui-redesign`) — migrate to blue/white enterprise layout
+- Windows packaging validation
+- Staff workflow feedback collection
+- Reviewer corrections workflow

@@ -5,14 +5,18 @@ The rest of the pipeline should not need to know about Bedrock request or
 response envelopes. Keep this file small so provider details stay reversible.
 """
 import json
+import logging
 import os
+import time
 
 
 DEFAULT_BEDROCK_REGION = "us-east-1"
 # Current Sonnet default for Bedrock Messages API. Can be overridden per install
 # while AWS account/model enablement is finalized.
-DEFAULT_BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-6-v1"
+DEFAULT_BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 ANTHROPIC_BEDROCK_VERSION = "bedrock-2023-05-31"
+
+logger = logging.getLogger("tax_document_processor.bedrock")
 
 
 class BedrockTaxExtractor:
@@ -52,12 +56,45 @@ class BedrockTaxExtractor:
             "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": content}],
         }
-        response = self.runtime.invoke_model(
-            modelId=self.model_id,
-            body=json.dumps(payload),
+
+        # Estimate prompt size for telemetry (rough char count of serialized content)
+        prompt_chars = len(json.dumps(content))
+
+        logger.info(
+            "bedrock.invoke_start model=%s region=%s max_tokens=%d prompt_chars=%d",
+            self.model_id, self.region, max_tokens, prompt_chars,
         )
-        body = json.loads(response["body"].read())
-        return self.response_text(body)
+
+        t0 = time.monotonic()
+        try:
+            response = self.runtime.invoke_model(
+                modelId=self.model_id,
+                body=json.dumps(payload),
+            )
+            body = json.loads(response["body"].read())
+            latency_ms = int((time.monotonic() - t0) * 1000)
+
+            usage = body.get("usage", {})
+            input_tokens = usage.get("input_tokens", "?")
+            output_tokens = usage.get("output_tokens", "?")
+            stop_reason = body.get("stop_reason", "?")
+
+            logger.info(
+                "bedrock.invoke_success model=%s region=%s "
+                "latency_ms=%d input_tokens=%s output_tokens=%s stop_reason=%s",
+                self.model_id, self.region,
+                latency_ms, input_tokens, output_tokens, stop_reason,
+            )
+
+            return self.response_text(body)
+
+        except Exception as exc:
+            latency_ms = int((time.monotonic() - t0) * 1000)
+            logger.error(
+                "bedrock.invoke_error model=%s region=%s latency_ms=%d error=%s: %s",
+                self.model_id, self.region, latency_ms, type(exc).__name__, exc,
+            )
+            raise
 
     @staticmethod
     def response_text(body):

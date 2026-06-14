@@ -1,0 +1,136 @@
+DOCUMENT LOG
+Client: , 
+Tax Year: 2025
+=======================================================
+
+FILE RENAMES
+----------------------------------------
+  W2_PelhamCitySchools_2025.pdf
+    → W-2_PelhamCitySchools_2025.pdf
+
+  W2_HartwellManufacturing_2025.pdf
+    → W-2_HartwellManufacturin_2025.pdf
+
+  1099INT_RegionsBank_2025.pdf
+    → 1099-INT_RegionsBank_2025.pdf
+
+  1099NEC_BlueSkyConsulting_2025.pdf
+    → 1099-NEC_BlueSkyConsultingLLC_2025.pdf
+
+VALIDATION FLAGS
+----------------------------------------
+  None — all documents passed validation
+
+OPEN ITEMS
+----------------------------------------
+  Birthdates assumed (age 40) — confirm with client.
+  If filer or spouse is 65+, senior standard deduction add-on applies.
+  FILING STATUS: Only one name found (ALEX RIVERA) — defaulted to Single, confirm with client
+
+EXTRACTED VALUES SUMMARY
+----------------------------------------
+  W-2_PelhamCitySchools_2025.pdf
+    box_1: 12300.0
+    box_2: 1476.0
+    box_3: 12300.0
+    box_4: 762.6
+    box_5: 12300.0
+    box_6: 178.35
+    box_12_code: D
+    box_12_amount: 1200.0
+    box_15: AL
+    box_16: 12300.0
+    box_17: 553.5
+    notes: Document is marked SAMPLE — FOR PIPELINE TESTING ONLY — Not for filing with the IRS or any government agency. SS tax check: 6.2% of $12,300 = $762.60 matches box_4 exactly. Medicare tax check: 1.45% of $12,300 = $178.35 matches box_6 exactly. Retirement plan box is marked X.
+
+  W-2_HartwellManufacturin_2025.pdf
+    box_1: 68420.0
+    box_2: 8210.4
+    box_3: 68420.0
+    box_4: 4242.04
+    box_5: 68420.0
+    box_6: 992.09
+    box_12_code: D
+    box_12_amount: 6500.0
+    box_15: AL
+    box_16: 68420.0
+    box_17: 3079.0
+    notes: Retirement plan box is checked (box 13). SSN partially redacted as XXX-XX-4521. Document is marked SAMPLE — NOT FOR FILING.
+
+  1099-INT_RegionsBank_2025.pdf
+    box_1: 342.18
+    notes: Document is marked SAMPLE — FOR PIPELINE TESTING ONLY — Not for filing with the IRS or any government agency. Payer EIN: 63-0366371. Recipient SSN partially masked: XXX-XX-4521.
+
+  1099-NEC_BlueSkyConsultingLLC_2025.pdf
+    box_1: 8750.0
+    notes: Document is marked SAMPLE — FOR PIPELINE TESTING ONLY — Not for filing with the IRS or any government agency. Payer EIN: 82-4417653. Recipient SSN (masked): XXX-XX-4521. State income reported in box 7: $8,750.00. State withholding $0.00.
+
+REVIEWER FIELD METADATA
+----------------------------------------
+  [W-2_PelhamCitySchools_2025.pdf] form_type: confidence 99 p.1 — evidence: W-2 Wage and Tax Statement
+  [W-2_PelhamCitySchools_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [W-2_PelhamCitySchools_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: Employee's name: Alex Rivera
+  [W-2_PelhamCitySchools_2025.pdf] spouse_name: confidence 99 p.1 — evidence: No spouse name present in document
+  [W-2_PelhamCitySchools_2025.pdf] all_names: confidence 99 p.1 — evidence: Alex Rivera listed as employee
+  [W-2_PelhamCitySchools_2025.pdf] payer_name: confidence 99 p.1 — evidence: Employer's name: Pelham City Schools
+  [W-2_PelhamCitySchools_2025.pdf] state: confidence 99 p.1 — evidence: State: AL
+  [W-2_PelhamCitySchools_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status indicator present — notes: W-2 forms do not include filing status
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Wages, tips, other compensation $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_2: confidence 99 p.1 — evidence: 2 Federal income tax withheld $1,476.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_3: confidence 99 p.1 — evidence: 3 Social security wages $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Social security tax withheld $762.60
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_5: confidence 99 p.1 — evidence: 5 Medicare wages and tips $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_6: confidence 99 p.1 — evidence: 6 Medicare tax withheld $178.35
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_12_code: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_12_amount: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals $1,200.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_15: confidence 99 p.1 — evidence: 15 State: AL
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_16: confidence 99 p.1 — evidence: 16 State wages, tips, etc. $12,300.00
+  [W-2_PelhamCitySchools_2025.pdf] boxes.box_17: confidence 99 p.1 — evidence: 17 State income tax withheld $553.50
+  [W-2_HartwellManufacturin_2025.pdf] form_type: confidence 99 p.1 — evidence: W-2 Wage and Tax Statement
+  [W-2_HartwellManufacturin_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [W-2_HartwellManufacturin_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: e Employee's name, address, and ZIP code Alex Rivera
+  [W-2_HartwellManufacturin_2025.pdf] spouse_name: confidence 99 p.1 — evidence: No second individual name present in document
+  [W-2_HartwellManufacturin_2025.pdf] all_names: confidence 99 p.1 — evidence: Alex Rivera 142 Mockingbird Lane, Pelham, AL 35124
+  [W-2_HartwellManufacturin_2025.pdf] payer_name: confidence 99 p.1 — evidence: Employer's name, address, and ZIP code Hartwell Manufacturing Co.
+  [W-2_HartwellManufacturin_2025.pdf] state: confidence 99 p.1 — evidence: 15 State AL
+  [W-2_HartwellManufacturin_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status information present in document — notes: W-2 forms do not contain filing status; no attached notes indicate status
+  [W-2_HartwellManufacturin_2025.pdf] charity_cash: confidence 99 p.1 — notes: Not present on W-2 or in any supplemental notes
+  [W-2_HartwellManufacturin_2025.pdf] charity_noncash: confidence 99 p.1 — notes: Not present on W-2 or in any supplemental notes
+  [W-2_HartwellManufacturin_2025.pdf] medical_expenses: confidence 99 p.1 — notes: Not present on W-2 or in any supplemental notes
+  [W-2_HartwellManufacturin_2025.pdf] car_tags: confidence 99 p.1 — notes: Not present on W-2 or in any supplemental notes
+  [W-2_HartwellManufacturin_2025.pdf] taxpayer_dob: confidence 99 p.1 — notes: Not present in document
+  [W-2_HartwellManufacturin_2025.pdf] spouse_dob: confidence 99 p.1 — notes: Not present in document
+  [W-2_HartwellManufacturin_2025.pdf] additional_interest: confidence 99 p.1 — notes: Not present in document
+  [W-2_HartwellManufacturin_2025.pdf] additional_interest_payer: confidence 99 p.1 — notes: Not present in document
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Wages, tips, other compensation $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_2: confidence 99 p.1 — evidence: 2 Federal income tax withheld $8,210.40
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_3: confidence 99 p.1 — evidence: 3 Social security wages $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Social security tax withheld $4,242.04
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_5: confidence 99 p.1 — evidence: 5 Medicare wages and tips $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_6: confidence 99 p.1 — evidence: 6 Medicare tax withheld $992.09
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_12_code: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_12_amount: confidence 99 p.1 — evidence: 12a Code D — Elective deferrals $6,500.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_15: confidence 99 p.1 — evidence: 15 State AL
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_16: confidence 99 p.1 — evidence: 16 State wages, tips, etc. $68,420.00
+  [W-2_HartwellManufacturin_2025.pdf] boxes.box_17: confidence 99 p.1 — evidence: 17 State income tax withheld $3,079.00
+  [1099-INT_RegionsBank_2025.pdf] form_type: confidence 99 p.1 — evidence: 1099-INT Interest Income
+  [1099-INT_RegionsBank_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [1099-INT_RegionsBank_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: Alex Rivera
+  [1099-INT_RegionsBank_2025.pdf] spouse_name: confidence 99 p.1 — evidence: Only one recipient name present
+  [1099-INT_RegionsBank_2025.pdf] all_names: confidence 99 p.1 — evidence: Alex Rivera
+  [1099-INT_RegionsBank_2025.pdf] payer_name: confidence 99 p.1 — evidence: Regions Bank
+  [1099-INT_RegionsBank_2025.pdf] state: confidence 99 p.1 — evidence: 142 Mockingbird Lane, Pelham, AL 35124 — notes: State inferred from recipient address
+  [1099-INT_RegionsBank_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status indicated on 1099-INT — notes: 1099-INT forms do not carry filing status information
+  [1099-INT_RegionsBank_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Interest income $342.18
+  [1099-INT_RegionsBank_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Federal income tax withheld $0.00
+  [1099-INT_RegionsBank_2025.pdf] boxes.box_8: confidence 99 p.1 — evidence: 8 Tax-exempt interest $0.00
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] form_type: confidence 99 p.1 — evidence: 1099-NEC Nonemployee Compensation
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] tax_year: confidence 99 p.1 — evidence: Tax Year 2025
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] taxpayer_name: confidence 99 p.1 — evidence: RECIPIENT'S name: Alex Rivera
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] spouse_name: confidence 99 p.1 — evidence: No spouse name found anywhere in document
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] all_names: confidence 99 p.1 — evidence: Alex Rivera — sole recipient listed
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] payer_name: confidence 99 p.1 — evidence: PAYER'S name: BlueSky Consulting LLC
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] state: confidence 99 p.1 — evidence: State / Payer's state no.: AL / 4521-8
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] filing_status: confidence 99 p.1 — evidence: No filing status information present in document — notes: No explicit filing status stated
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] boxes.box_1: confidence 99 p.1 — evidence: 1 Nonemployee compensation $8,750.00
+  [1099-NEC_BlueSkyConsultingLLC_2025.pdf] boxes.box_4: confidence 99 p.1 — evidence: 4 Federal income tax withheld $0.00
