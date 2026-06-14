@@ -1,37 +1,48 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { runProbe, runPipeline, pickPdfPaths, loadSettings, saveSettings, pickFolder, pickXlsxFile } from "./tauriBridge.js";
 
-const defaultFolders = [
-  { id: "sd", type: "Folder", value: "SD", note: "renamed source PDFs", create: true },
-  { id: "review", type: "Folder", value: "Review", note: "Excel workbooks", create: true },
-  { id: "return", type: "Folder", value: "Return", note: "created empty", create: true },
-  { id: "signature", type: "Folder", value: "Signature Pages", note: "created empty", create: true },
-  { id: "logs", type: "Log", value: "logs/", note: "packet history", create: true },
-  { id: "latest-log", type: "Log", value: "document_log_latest.txt", note: "latest packet log", create: true },
-];
-
-const formTypes = ["W-2", "1099-INT", "1099-DIV", "1099-R", "Organizer", "Notes"];
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function clientSlug(lastName, firstName) {
-  const parts = [lastName, firstName].map((part) => part.trim()).filter(Boolean);
+  const parts = [lastName, firstName].map((p) => p.trim()).filter(Boolean);
   const name = parts.length ? parts.join("_") : "Client";
   return `${name.replace(/[^a-zA-Z0-9_-]+/g, "_")}_2025`;
 }
 
-function guessedFormType(file, index) {
-  const name = file.name.toLowerCase();
-  if (name.includes("w2") || name.includes("w-2")) return "W-2";
-  if (name.includes("int")) return "1099-INT";
-  if (name.includes("div")) return "1099-DIV";
-  if (name.includes("1099r") || name.includes("1099-r")) return "1099-R";
-  if (name.includes("organizer")) return "Organizer";
-  if (name.includes("note")) return "Notes";
-  return formTypes[index % formTypes.length];
+function guessFormType(file) {
+  const n = file.name.toLowerCase();
+  if (n.includes("w2") || n.includes("w-2")) return "W-2";
+  if (n.includes("1099-int") || n.includes("1099int")) return "1099-INT";
+  if (n.includes("1099-div") || n.includes("1099div")) return "1099-DIV";
+  if (n.includes("1099-r") || n.includes("1099r")) return "1099-R";
+  if (n.includes("1099-misc") || n.includes("1099misc")) return "1099-MISC";
+  if (n.includes("k-1") || n.includes("k1")) return "K-1";
+  if (n.includes("organizer")) return "Organizer";
+  if (n.includes("mortgage")) return "Mortgage";
+  if (n.includes("note")) return "Notes";
+  return null;
 }
 
+function fmtSize(bytes) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── Root App ────────────────────────────────────────────────────────────────
+
 export function App() {
-  const [files, setFiles] = useState([]);       // File objects for display
-  const [pdfPaths, setPdfPaths] = useState([]); // absolute paths for pipeline
+  const [files, setFiles] = useState([]);
+  const [pdfPaths, setPdfPaths] = useState([]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [outputFolder, setOutputFolder] = useState("");
+  const [generateExcel, setGenerateExcel] = useState(true);
+  const [processingState, setProcessingState] = useState("idle"); // idle | processing | complete
+  const [progressLines, setProgressLines] = useState([]);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
     aws_region: "us-east-1",
     aws_profile: "",
@@ -41,19 +52,11 @@ export function App() {
     output_folder: "",
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [outputFolder, setOutputFolder] = useState("~/Desktop");
-  const [generateExcel, setGenerateExcel] = useState(true);
-  const [processingState, setProcessingState] = useState("idle");
-  const [activeTab, setActiveTab] = useState("organization");
-  const [folders, setFolders] = useState(defaultFolders);
+  const [settingsTab, setSettingsTab] = useState("bedrock");
+  const [bridgeState, setBridgeState] = useState({ running: false, lines: [], result: "" });
   const [dragging, setDragging] = useState(false);
-  const [bridgeState, setBridgeState] = useState({
-    running: false,
-    result: "",
-    lines: [],
-  });
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     loadSettings().then((loaded) => {
@@ -63,36 +66,54 @@ export function App() {
     });
   }, []);
 
+  // Elapsed timer during processing
+  useEffect(() => {
+    if (processingState === "processing") {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [processingState]);
+
   const slug = clientSlug(lastName, firstName);
-  const hasFiles = files.length > 0;
+  const isIdle = processingState === "idle";
   const isProcessing = processingState === "processing";
   const isComplete = processingState === "complete";
 
-  function selectFiles(fileList) {
-    const pdfs = Array.from(fileList).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
-    setFiles(pdfs);
-    setPdfPaths([]); // paths come from pickPdfPaths in Tauri; cleared on new selection
-    setProcessingState("idle");
-  }
-
-  async function openNativeFilePicker() {
-    console.log("openNativeFilePicker called");
+  async function openFilePicker() {
     try {
       const paths = await pickPdfPaths();
       if (!paths.length) return;
-      const fakeFiles = paths.map((p) => ({ name: p.split("/").pop(), path: p }));
+      const fakeFiles = paths.map((p) => ({ name: p.split("/").pop(), path: p, size: 0 }));
       setFiles(fakeFiles);
       setPdfPaths(paths);
       setProcessingState("idle");
+      setProgressLines([]);
+      setErrorMsg("");
     } catch (err) {
-      setBridgeState((s) => ({ ...s, result: `File picker error: ${err?.message ?? err}` }));
+      setErrorMsg(`File picker error: ${err?.message ?? err}`);
     }
   }
 
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const pdfs = Array.from(e.dataTransfer.files).filter((f) => f.name.toLowerCase().endsWith(".pdf"));
+    if (!pdfs.length) return;
+    setFiles(pdfs);
+    setPdfPaths([]);
+    setProcessingState("idle");
+    setProgressLines([]);
+    setErrorMsg("");
+  }
+
   async function processDocuments() {
-    if (!hasFiles || isProcessing) return;
+    if (!files.length || isProcessing) return;
     setProcessingState("processing");
-    setBridgeState({ running: true, result: "", lines: [] });
+    setProgressLines([]);
+    setErrorMsg("");
     const job = {
       pdf_paths: pdfPaths.length ? pdfPaths : files.map((f) => f.path ?? f.name),
       last_name: lastName,
@@ -102,514 +123,539 @@ export function App() {
     };
     try {
       await runPipeline(job, (line) => {
-        setBridgeState((current) => ({ ...current, lines: [...current.lines, line] }));
+        setProgressLines((cur) => [...cur, line]);
       });
       setProcessingState("complete");
-      setBridgeState((current) => ({ ...current, running: false, result: "Pipeline completed successfully." }));
-    } catch (error) {
+    } catch (err) {
       setProcessingState("idle");
-      setBridgeState((current) => ({
-        ...current,
-        running: false,
-        result: error instanceof Error ? error.message : String(error),
-      }));
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     }
   }
 
-  function addFolder() {
-    setFolders((current) => [
-      ...current.slice(0, -2),
-      { id: `folder-${Date.now()}`, type: "Folder", value: "New Folder", note: "custom folder", create: true },
-      ...current.slice(-2),
-    ]);
-  }
-
-  function restoreDefaults() {
-    setFolders(defaultFolders);
+  function resetToIdle() {
+    setFiles([]);
+    setPdfPaths([]);
+    setProcessingState("idle");
+    setProgressLines([]);
+    setErrorMsg("");
+    setFirstName("");
+    setLastName("");
   }
 
   return (
-    <>
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
+    <div className="rp-app">
+      {/* ── Header ── */}
+      <header className="rp-header">
+        <span className="rp-header-icon">📄</span>
+        <h1 className="rp-header-title">Tax Document Processor</h1>
+        <span className="rp-year-badge">2025</span>
+        <button className="rp-settings-btn" onClick={() => setShowSettings(true)}>
+          ⚙ Settings
+        </button>
+      </header>
 
-      <main className="desktop-frame">
-        <CommandRail />
-
-        <section className="workspace">
-          <Topbar />
-
-          <section className="intake-grid" id="intake" aria-label="Document intake">
-            <HeroCard
-              files={files}
-              hasFiles={hasFiles}
-              isProcessing={isProcessing}
-              isComplete={isComplete}
-              dragging={dragging}
-              onSelectFiles={selectFiles}
-              onPickFiles={openNativeFilePicker}
-              onDragState={setDragging}
-            />
-
-            <StatusColumn
-              files={files}
-              lastName={lastName}
-              firstName={firstName}
-              slug={slug}
-              isProcessing={isProcessing}
-            />
-          </section>
-
-          <DetailsCard
-            firstName={firstName}
-            lastName={lastName}
-            outputFolder={outputFolder}
-            generateExcel={generateExcel}
-            hasFiles={hasFiles}
-            isProcessing={isProcessing}
-            onFirstName={setFirstName}
-            onLastName={setLastName}
-            onOutputFolder={setOutputFolder}
-            onGenerateExcel={setGenerateExcel}
-            onProcess={processDocuments}
-          />
-
-          <InsightGrid
-            files={files}
+      {/* ── Main content ── */}
+      <div className="rp-body">
+        {isComplete ? (
+          <CompleteView
             slug={slug}
-            generateExcel={generateExcel}
-            isProcessing={isProcessing}
-            isComplete={isComplete}
+            files={files}
+            elapsed={elapsed}
+            outputFolder={outputFolder}
+            onReset={resetToIdle}
           />
+        ) : (
+          <>
+            <div className="rp-grid">
+              {/* Left: Client Packet */}
+              <div className="rp-card">
+                <div className="rp-card-header">
+                  <span className="rp-card-icon">📂</span>
+                  <h2>Client Packet</h2>
+                  {isProcessing && <span className="rp-card-sub">{slug}</span>}
+                </div>
+                <div className="rp-card-body">
+                  <div className="rp-form-row">
+                    <div className="rp-field">
+                      <label>FIRST NAME <span className="rp-opt">(optional)</span></label>
+                      <input
+                        type="text"
+                        placeholder="e.g., John"
+                        value={firstName}
+                        readOnly={isProcessing}
+                        onChange={(e) => setFirstName(e.target.value)}
+                      />
+                    </div>
+                    <div className="rp-field">
+                      <label>LAST NAME <span className="rp-opt">(optional)</span></label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Smith"
+                        value={lastName}
+                        readOnly={isProcessing}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-          <ConfigShell
-            activeTab={activeTab}
-            bridgeState={bridgeState}
-            folders={folders}
-            settings={settings}
-            settingsSaved={settingsSaved}
-            onActiveTab={setActiveTab}
-            onAddFolder={addFolder}
-            onRestoreDefaults={restoreDefaults}
-            onSettingsChange={(key, value) => {
-              setSettings((s) => ({ ...s, [key]: value }));
-              setSettingsSaved(false);
-            }}
-            onSaveSettings={async () => {
-              await saveSettings(settings);
-              if (settings.output_folder) setOutputFolder(settings.output_folder);
-              setSettingsSaved(true);
-              setTimeout(() => setSettingsSaved(false), 2000);
-            }}
-            onRenameFolder={(id, value) => {
-              setFolders((current) => current.map((item) => (item.id === id ? { ...item, value } : item)));
-            }}
-            onToggleFolder={(id, create) => {
-              setFolders((current) => current.map((item) => (item.id === id ? { ...item, create } : item)));
-            }}
-            onRunBridge={async () => {
-              setBridgeState({ running: true, result: "", lines: [] });
-              try {
-                await runProbe((line) => {
-                  setBridgeState((current) => ({ ...current, lines: [...current.lines, line] }));
-                });
-                setBridgeState((current) => ({ ...current, running: false, result: "Probe completed successfully." }));
-              } catch (error) {
-                setBridgeState((current) => ({
-                  ...current,
-                  running: false,
-                  result: error instanceof Error ? error.message : String(error),
-                }));
-              }
-            }}
-          />
-        </section>
-      </main>
-    </>
-  );
-}
+                  {isProcessing ? (
+                    <div className="rp-form-row">
+                      <div className="rp-field">
+                        <label>TAX YEAR</label>
+                        <input type="text" value="2025" readOnly />
+                      </div>
+                      <div className="rp-field">
+                        <label>OUTPUT FOLDER</label>
+                        <input type="text" value={outputFolder || "~/Desktop"} readOnly />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="rp-field">
+                        <label>TAX YEAR</label>
+                        <input type="text" value="2025" readOnly />
+                      </div>
+                      <div className="rp-field">
+                        <label>OUTPUT FOLDER</label>
+                        <div className="rp-input-row">
+                          <input
+                            type="text"
+                            placeholder="~/Desktop/TaxData/2025"
+                            value={outputFolder}
+                            onChange={(e) => setOutputFolder(e.target.value)}
+                          />
+                          <button
+                            className="rp-browse-btn"
+                            onClick={async () => {
+                              const p = await pickFolder();
+                              if (p) setOutputFolder(p);
+                            }}
+                          >
+                            Browse…
+                          </button>
+                        </div>
+                      </div>
 
-function CommandRail() {
-  return (
-    <aside className="command-rail" aria-label="Primary navigation">
-      <div className="brand-mark">TP</div>
-      <nav>
-        <a className="rail-item active" href="#intake" aria-label="Intake"><span>01</span>Intake</a>
-        <a className="rail-item locked" href="#review" aria-label="Review unavailable"><span>02</span>Review</a>
-        <a className="rail-item" href="#configuration" aria-label="Settings"><span>03</span>Config</a>
-      </nav>
-      <div className="rail-footer">
-        <p>2025</p>
-        <small>Local workspace</small>
+                      {/* Drop zone */}
+                      <div
+                        className={`rp-dropzone${dragging ? " is-dragging" : ""}`}
+                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                        onDragLeave={() => setDragging(false)}
+                        onDrop={handleDrop}
+                        onClick={openFilePicker}
+                      >
+                        <span className="rp-dz-icon">☁</span>
+                        <p className="rp-dz-title">Drop PDF files here</p>
+                        <small>or click to browse</small>
+                      </div>
+
+                      <button className="rp-browse-full" onClick={openFilePicker}>
+                        Browse Files
+                      </button>
+                    </>
+                  )}
+
+                  {/* File list */}
+                  {files.length > 0 && (
+                    <>
+                      <div className="rp-files-header">
+                        <span className="rp-section-label">Selected files</span>
+                        <div className="rp-files-meta">
+                          <span className="rp-count-pill">{files.length} files</span>
+                          {!isProcessing && (
+                            <button className="rp-clear-btn" onClick={() => { setFiles([]); setPdfPaths([]); }}>
+                              ✕ Clear
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <table className="rp-ftable">
+                        <thead>
+                          <tr>
+                            <th style={{ width: "52%" }}>File name</th>
+                            <th style={{ width: "18%" }}>Size</th>
+                            <th>{isProcessing ? "Status" : "Type"}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {files.map((file, i) => (
+                            <tr key={file.name + i}>
+                              <td>
+                                <span className="rp-pdf-ico">📄</span>
+                                {file.name}
+                              </td>
+                              <td>{fmtSize(file.size)}</td>
+                              <td>
+                                {isProcessing ? (
+                                  <FileStatus index={i} total={files.length} lines={progressLines} />
+                                ) : (
+                                  <span className="rp-type-dash">{guessFormType(file) ?? "—"}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+
+                  {errorMsg && <p className="rp-error">{errorMsg}</p>}
+                </div>
+              </div>
+
+              {/* Right: Package Outputs */}
+              <div className="rp-card">
+                <div className="rp-card-header">
+                  <span className="rp-card-icon">📦</span>
+                  <h2>Package Outputs</h2>
+                </div>
+
+                {!isProcessing && (
+                  <p className="rp-card-desc">
+                    The following outputs will be generated for this client packet.
+                  </p>
+                )}
+
+                <div className="rp-output-list">
+                  <div className="rp-output-item">
+                    <div className="rp-file-ic rp-ic-pdf">📄</div>
+                    <div className="rp-out-text">
+                      <p>Renamed PDFs</p>
+                      <small>Organized in SD/ subfolder</small>
+                    </div>
+                    <div className="rp-incl"><span className="rp-incl-dot">✓</span> Included</div>
+                  </div>
+                  <div className="rp-output-item">
+                    <div className="rp-file-ic rp-ic-xls">⊞</div>
+                    <div className="rp-out-text">
+                      <p>1040 Workbook</p>
+                      <small>Populated for review</small>
+                    </div>
+                    <div className="rp-incl"><span className="rp-incl-dot">✓</span> Included</div>
+                  </div>
+                  <div className="rp-output-item">
+                    <div className="rp-file-ic rp-ic-xls">⊞</div>
+                    <div className="rp-out-text">
+                      <p>DoubleCheck Workbook</p>
+                      <small>Cross-check diagnostics</small>
+                    </div>
+                    <div className="rp-incl"><span className="rp-incl-dot">✓</span> Included</div>
+                  </div>
+                </div>
+
+                {isProcessing ? (
+                  <div className="rp-saving-box">
+                    <div className="rp-saving-label">SAVING TO</div>
+                    <div className="rp-saving-path">{outputFolder || "~/Desktop"}/{slug}</div>
+                  </div>
+                ) : (
+                  <label className="rp-ckr">
+                    <span className={`rp-ckbox${generateExcel ? " checked" : ""}`}>✓</span>
+                    <div>
+                      <p className="rp-ck-title">Generate Excel workbooks</p>
+                      <small>Creates 1040 and DoubleCheck files</small>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={generateExcel}
+                      onChange={(e) => setGenerateExcel(e.target.checked)}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                )}
+
+                <button
+                  className="rp-process-btn"
+                  disabled={!files.length || isProcessing}
+                  onClick={processDocuments}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#2d5a8e"; }}
+                  onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#1e3a5f"; }}
+                  onMouseDown={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#162d47"; }}
+                  onMouseUp={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = "#2d5a8e"; }}
+                >
+                  {isProcessing ? (
+                    <><span className="rp-spin">↻</span> Processing…</>
+                  ) : (
+                    <>▶ Process Documents</>
+                  )}
+                </button>
+
+                <div className="rp-warn">
+                  <span>⚠</span>
+                  <p>
+                    {isProcessing
+                      ? "Processing in progress. Do not close the app."
+                      : "Generated workbooks are first drafts. Human review required before customer use."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Processing drawer */}
+            {isProcessing && (
+              <div className="rp-drawer">
+                <div className="rp-drawer-header">
+                  <span className="rp-drawer-title">Processing run</span>
+                  <span className="rp-run-badge">
+                    <span className="rp-run-dot" />
+                    Running · {elapsed}s
+                  </span>
+                  <span className="rp-drawer-right">
+                    {progressLines.length} of {files.length} complete
+                  </span>
+                </div>
+                <div className="rp-drawer-rows">
+                  {files.map((file, i) => (
+                    <DrawerRow key={file.name + i} file={file} index={i} total={files.length} lines={progressLines} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </aside>
-  );
-}
 
-function Topbar() {
-  return (
-    <header className="topbar">
-      <div>
-        <p className="eyebrow">front office intake</p>
-        <h1>Turn a messy packet into a clean client folder.</h1>
-      </div>
-      <a className="settings-button" href="#configuration" aria-label="Open settings">
-        <span className="gear" aria-hidden="true" />
-        Settings
-      </a>
-    </header>
-  );
-}
-
-function HeroCard({ files, hasFiles, isProcessing, isComplete, dragging, onSelectFiles, onPickFiles, onDragState }) {
-  const title = isProcessing
-    ? "Processing documents"
-    : isComplete
-      ? "Output preview ready"
-      : hasFiles
-        ? `${files.length} document${files.length === 1 ? "" : "s"} ready`
-        : "No documents selected";
-  const copy = isProcessing
-    ? "This prototype simulates progress; backend hookup comes next."
-    : isComplete
-      ? "The real pipeline bridge will use this same intake state."
-      : hasFiles
-        ? "Choose PDFs again to replace the selected packet."
-        : "Drop W-2s, 1099s, organizers, notes, and supporting PDFs here.";
-
-  return (
-    <article className="glass-card hero-card">
-      <div className="hero-copy">
-        <p className="eyebrow">Step 1</p>
-        <h2>Drop in the client's PDFs.</h2>
-        <p>We'll read the documents, rename source files, create the office folder structure, and prepare Excel review documents when enabled.</p>
-        <PacketStrip files={files} />
-      </div>
-
-      <div
-        className={`drop-zone ${dragging ? "is-dragging" : ""}`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          onDragState(true);
-        }}
-        onDragLeave={() => onDragState(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          onDragState(false);
-          onSelectFiles(event.dataTransfer.files);
-        }}
-      >
-        <div className="paper-stack" aria-hidden="true"><span /><span /><strong>PDF</strong></div>
-        <div>
-          <p className="drop-title">{title}</p>
-          <p className="drop-copy">{copy}</p>
-        </div>
-      </div>
-      <button type="button" className="button secondary" style={{marginTop: "12px", alignSelf: "center"}} onClick={onPickFiles}>Choose PDFs</button>
-    </article>
-  );
-}
-
-function PacketStrip({ files }) {
-  if (!files.length) {
-    return (
-      <div className="packet-strip" aria-label="Packet preview">
-        {["W-2", "1099-INT", "1099-DIV", "Organizer"].map((type) => <div className="packet-pill muted" key={type}>{type}</div>)}
-        <div className="packet-pill ghost">waiting</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="packet-strip" aria-label="Packet preview">
-      {files.slice(0, 5).map((file, index) => <div className="packet-pill" key={file.name}>{guessedFormType(file, index)}</div>)}
-      {files.length > 5 ? <div className="packet-pill ghost">+{files.length - 5} more</div> : null}
+      {/* Settings overlay */}
+      {showSettings && (
+        <SettingsOverlay
+          settings={settings}
+          settingsSaved={settingsSaved}
+          settingsTab={settingsTab}
+          bridgeState={bridgeState}
+          onTabChange={setSettingsTab}
+          onClose={() => setShowSettings(false)}
+          onChange={(k, v) => { setSettings((s) => ({ ...s, [k]: v })); setSettingsSaved(false); }}
+          onSave={async () => {
+            await saveSettings(settings);
+            if (settings.output_folder) setOutputFolder(settings.output_folder);
+            setSettingsSaved(true);
+            setTimeout(() => setSettingsSaved(false), 2000);
+          }}
+          onRunProbe={async () => {
+            setBridgeState({ running: true, lines: [], result: "" });
+            try {
+              await runProbe((line) => setBridgeState((s) => ({ ...s, lines: [...s.lines, line] })));
+              setBridgeState((s) => ({ ...s, running: false, result: "Probe completed successfully." }));
+            } catch (err) {
+              setBridgeState((s) => ({ ...s, running: false, result: String(err) }));
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function StatusColumn({ files, lastName, firstName, slug, isProcessing }) {
-  const packetTitle = isProcessing
-    ? "Processing packet"
-    : files.length
-      ? `${files.length} PDF${files.length === 1 ? "" : "s"} selected`
-      : "Waiting for PDFs";
-  const packetCopy = isProcessing
-    ? "Reading PDFs, renaming files, and preparing output."
-    : files.length
-      ? "Ready to create the client folder and packet logs."
-      : "Add source documents to enable processing.";
-  const clientTitle = lastName && firstName ? `${lastName}, ${firstName}` : lastName || firstName ? `${lastName || firstName} packet` : "Name optional";
-  const clientCopy = lastName || firstName ? `Output folder will create ${slug}.` : "Blank names create Client_2025.";
+// ─── File status cell (used in table during processing) ──────────────────────
+
+function FileStatus({ index, total, lines }) {
+  // Heuristic: done = has a progress line, current = index === lines.length, waiting = else
+  const done = index < lines.length;
+  const current = index === lines.length;
+  if (done) return <span className="rp-status-done">✓ Done</span>;
+  if (current) return <span className="rp-status-extracting">↻ Extracting</span>;
+  return <span className="rp-status-waiting">● Waiting</span>;
+}
+
+// ─── Processing drawer row ────────────────────────────────────────────────────
+
+function DrawerRow({ file, index, lines }) {
+  const done = index < lines.length;
+  const current = index === lines.length;
+  const line = lines[index];
 
   return (
-    <aside className="status-column" aria-label="Workflow status">
-      <article className="status-card current"><p className="eyebrow">Packet</p><h3>{packetTitle}</h3><p>{packetCopy}</p></article>
-      <article className="status-card"><p className="eyebrow">Client</p><h3>{clientTitle}</h3><p>{clientCopy}</p></article>
-      <article className="status-card locked" id="review"><p className="eyebrow">Reviewer mode</p><h3>Locked for now</h3><p>Low-confidence review unlocks after backend correction support.</p></article>
-    </aside>
+    <div className="rp-drawer-row">
+      <div className={`rp-dr-icon ${done ? "done" : current ? "spin" : "wait"}`}>
+        {done ? "✓" : current ? <span className="rp-spin">↻</span> : "◷"}
+      </div>
+      <div className="rp-dr-body">
+        <div className="rp-dr-name">{file.name}</div>
+        <div className="rp-dr-sub">
+          {done && line ? `Extracted — ${guessFormType(file) ?? "document"}` : current ? "Extracting…" : "Waiting"}
+        </div>
+      </div>
+      {done && <div className="rp-dr-time">{/* latency from line if available */}—</div>}
+    </div>
   );
 }
 
-function DetailsCard(props) {
+// ─── Complete view ────────────────────────────────────────────────────────────
+
+function CompleteView({ slug, files, elapsed, outputFolder, onReset }) {
+  const outputPath = `${outputFolder || "~/Desktop"}/${slug}`;
+
   return (
-    <section className="details-card glass-card" aria-label="Client and output details">
-      <div className="section-title"><div><p className="eyebrow">Step 2</p><h2>Client and output details</h2></div><span className="badge">Per-client destination</span></div>
-      <div className="field-grid">
-        <label><span>Last name</span><input type="text" placeholder="Optional" value={props.lastName} onChange={(event) => props.onLastName(event.target.value)} /></label>
-        <label><span>First name</span><input type="text" placeholder="Optional" value={props.firstName} onChange={(event) => props.onFirstName(event.target.value)} /></label>
-        <label><span>Tax year</span><input type="text" value="2025" readOnly /></label>
+    <div className="rp-complete">
+      {/* Success banner */}
+      <div className="rp-success-banner">
+        <div className="rp-success-circle">✓</div>
+        <div>
+          <div className="rp-success-title">Package complete</div>
+          <div className="rp-success-sub">{files.length} documents · {elapsed}s · {slug}</div>
+        </div>
+        <button className="rp-open-btn" onClick={onReset}>
+          ＋ New packet
+        </button>
       </div>
-      <div className="destination-row">
-        <label><span>Output folder for this client</span><input type="text" value={props.outputFolder} onChange={(event) => props.onOutputFolder(event.target.value)} /></label>
-        <button className="button secondary" type="button">Browse</button>
+
+      <div className="rp-explorer-label">OUTPUT FOLDER CONTENTS</div>
+
+      {/* File explorer */}
+      <div className="rp-explorer">
+        {/* Breadcrumb */}
+        <div className="rp-breadcrumb">
+          <span className="rp-bc-seg">Desktop</span>
+          <span className="rp-bc-sep">/</span>
+          <span className="rp-bc-seg">TaxData</span>
+          <span className="rp-bc-sep">/</span>
+          <span className="rp-bc-seg">2025</span>
+          <span className="rp-bc-sep">/</span>
+          <span className="rp-bc-seg active">{slug}</span>
+        </div>
+
+        {/* SD folder */}
+        <div className="rp-folder-row">
+          <span className="rp-folder-ico">📁</span>
+          <span className="rp-folder-name">SD</span>
+          <span className="rp-folder-meta">{files.length} files · Source documents</span>
+          <span className="rp-folder-arrow">▾</span>
+        </div>
+        {files.map((file, i) => (
+          <div className="rp-file-row" key={file.name + i}>
+            <span className="rp-file-pdf-ico">📄</span>
+            <span className="rp-file-name">{file.name.replace(".pdf", `_2025.pdf`)}</span>
+            <span className="rp-file-size">{fmtSize(file.size)}</span>
+            <span className="rp-type-badge rp-badge-red">{guessFormType(file) ?? "PDF"}</span>
+          </div>
+        ))}
+
+        {/* Review folder */}
+        <div className="rp-folder-row rp-folder-sep">
+          <span className="rp-folder-ico">📁</span>
+          <span className="rp-folder-name">Review</span>
+          <span className="rp-folder-meta">2 files · Excel workbooks</span>
+          <span className="rp-folder-arrow">▾</span>
+        </div>
+        <div className="rp-file-row">
+          <span className="rp-file-xls-ico">📊</span>
+          <span className="rp-file-name">{slug}_1040.xlsx</span>
+          <span className="rp-file-size">84 KB</span>
+          <span className="rp-type-badge rp-badge-green">1040</span>
+        </div>
+        <div className="rp-file-row rp-file-sep">
+          <span className="rp-file-xls-ico">📊</span>
+          <span className="rp-file-name">{slug}_DoubleCheck.xlsx</span>
+          <span className="rp-file-size">61 KB</span>
+          <span className="rp-type-badge rp-badge-green">DoubleCheck</span>
+        </div>
+
+        {/* Return + Signature Pages */}
+        <div className="rp-folder-row rp-folder-sep">
+          <span className="rp-folder-ico rp-folder-empty">📁</span>
+          <span className="rp-folder-name">Return</span>
+          <span className="rp-folder-meta">Empty · Ready for preparer</span>
+          <span className="rp-folder-arrow rp-arrow-right">▸</span>
+        </div>
+        <div className="rp-folder-row" style={{ borderBottom: "none" }}>
+          <span className="rp-folder-ico rp-folder-empty">📁</span>
+          <span className="rp-folder-name">Signature Pages</span>
+          <span className="rp-folder-meta">Empty · Ready for preparer</span>
+          <span className="rp-folder-arrow rp-arrow-right">▸</span>
+        </div>
       </div>
-      <div className="run-row">
-        <label className="checkbox-row"><input type="checkbox" checked={props.generateExcel} onChange={(event) => props.onGenerateExcel(event.target.checked)} /><span>Generate Excel review documents</span></label>
-        <button className="button primary" type="button" disabled={!props.hasFiles || props.isProcessing} onClick={props.onProcess}>{props.isProcessing ? "Processing..." : "Process Documents"}</button>
-      </div>
-    </section>
+    </div>
   );
 }
 
-function InsightGrid({ files, slug, generateExcel, isProcessing, isComplete }) {
-  const items = [
-    ["SD/", `${files.length || "No"} renamed source PDFs`],
-    ["Review/", generateExcel ? "Excel workbooks enabled" : "Excel workbooks disabled"],
-    ["Return/", "created empty"],
-    ["Signature Pages/", "created empty"],
-    ["logs/", "versioned packet logs"],
-    ["document_log_latest.txt", "staff packet log"],
-  ];
-  const reviewTitle = isProcessing ? "Review queue warming up" : isComplete ? "2 items would need review" : "Nothing to review yet";
-  const reviewCopy = isProcessing
-    ? "Future low-confidence findings will route here after extraction."
-    : isComplete
-      ? "Example future state: low confidence on payer name and one validation flag. Correction workflow is not built yet."
-      : "Once backend correction exists, fields below the confidence threshold and validation-flagged items will appear here with evidence snippets.";
+// ─── Settings overlay ─────────────────────────────────────────────────────────
 
-  return (
-    <section className="insight-grid" aria-label="Processing preview">
-      <article className="preview-card"><p className="eyebrow">Output preview</p><h3>{slug}/ output preview</h3><ul className="preview-list">{items.map(([label, note]) => <li key={label}><span>{label}</span><small>{note}</small></li>)}</ul></article>
-      <article className={`preview-card locked-panel ${isProcessing || isComplete ? "review-alert" : ""}`}><p className="eyebrow">Future review queue</p><h3>{reviewTitle}</h3><p>{reviewCopy}</p></article>
-    </section>
-  );
-}
-
-function ConfigShell({
-  activeTab,
-  bridgeState,
-  folders,
-  settings,
-  settingsSaved,
-  onActiveTab,
-  onAddFolder,
-  onRestoreDefaults,
-  onSettingsChange,
-  onSaveSettings,
-  onRenameFolder,
-  onToggleFolder,
-  onRunBridge,
-}) {
+function SettingsOverlay({ settings, settingsSaved, settingsTab, bridgeState, onTabChange, onClose, onChange, onSave, onRunProbe }) {
   const tabs = [
-    ["organization", "File & Folder Organization"],
-    ["templates", "Excel Templates"],
     ["bedrock", "AWS / Bedrock"],
+    ["templates", "Templates"],
     ["diagnostics", "Diagnostics"],
   ];
 
   return (
-    <section className="config-shell" id="configuration" aria-label="Settings configuration">
-      <div className="section-title"><div><p className="eyebrow">Configuration</p><h2>Office setup</h2></div><span className="badge dark">Saved outside install folder</span></div>
-      <nav className="tabs" aria-label="Settings tabs">
-        {tabs.map(([id, label]) => <button className={`tab ${activeTab === id ? "active" : ""}`} type="button" key={id} onClick={() => onActiveTab(id)}>{label}</button>)}
-      </nav>
-      {activeTab === "organization" ? (
-        <div className="config-grid tab-panel active">
-          <article className="builder-panel">
-            <div className="builder-header"><div><p className="eyebrow">Default hierarchy</p><h3>Choose what each client/year folder creates</h3></div><button className="button secondary" type="button" onClick={onRestoreDefaults}>Restore Defaults</button></div>
-            <div className="tree-list" aria-label="Editable output hierarchy">
-              <div className="tree-row root-row"><span className="drag-handle" aria-hidden="true">⋮⋮</span><span className="row-type root">Root</span><strong>Client_2025/</strong><span className="row-note">destination picked on main screen</span></div>
-              {folders.map((item) => <TreeRow item={item} key={item.id} onRenameFolder={onRenameFolder} onToggleFolder={onToggleFolder} />)}
-            </div>
-            <div className="button-row"><button className="button secondary" type="button" onClick={onAddFolder}>Add Folder</button><button className="button secondary" type="button">Add Generated File Rule</button></div>
-          </article>
-          <PatternPanel />
+    <div className="rp-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="rp-settings-panel">
+        <div className="rp-settings-header">
+          <h2>Settings</h2>
+          <button className="rp-close-btn" onClick={onClose}>✕</button>
         </div>
-      ) : activeTab === "templates" ? (
-        <TemplatesPanel settings={settings} settingsSaved={settingsSaved} onSettingsChange={onSettingsChange} onSaveSettings={onSaveSettings} />
-      ) : activeTab === "bedrock" ? (
-        <BedrockPanel settings={settings} settingsSaved={settingsSaved} onSettingsChange={onSettingsChange} onSaveSettings={onSaveSettings} />
-      ) : activeTab === "diagnostics" ? (
-        <BridgePanel bridgeState={bridgeState} onRunBridge={onRunBridge} />
-      ) : null}
-    </section>
+        <nav className="rp-settings-tabs">
+          {tabs.map(([id, label]) => (
+            <button
+              key={id}
+              className={`rp-stab${settingsTab === id ? " active" : ""}`}
+              onClick={() => onTabChange(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {settingsTab === "bedrock" && (
+          <div className="rp-settings-body">
+            <p className="rp-settings-desc">All LLM calls route through AWS Bedrock. Changes take effect on the next packet processed.</p>
+            <SettingsField label="AWS Region" value={settings.aws_region} placeholder="us-east-1" note="Default: us-east-1" onChange={(v) => onChange("aws_region", v)} />
+            <SettingsField label="AWS Profile" value={settings.aws_profile} placeholder="Leave blank for default credential chain" note="Optional named profile from ~/.aws/credentials" onChange={(v) => onChange("aws_profile", v)} />
+            <SettingsField label="Bedrock Model ID" value={settings.bedrock_model_id} placeholder="us.anthropic.claude-sonnet-4-6" note="Default: us.anthropic.claude-sonnet-4-6" onChange={(v) => onChange("bedrock_model_id", v)} />
+            <SaveBar saved={settingsSaved} onSave={onSave} />
+          </div>
+        )}
+
+        {settingsTab === "templates" && (
+          <div className="rp-settings-body">
+            <p className="rp-settings-desc">These templates are copied and populated for each client packet.</p>
+            <SettingsField label="1040 Template" value={settings.template_1040} placeholder="Path to 1040 .xlsx template" note="Required for Excel output" onChange={(v) => onChange("template_1040", v)}
+              onBrowse={async () => { const p = await pickXlsxFile(); if (p) onChange("template_1040", p); }} />
+            <SettingsField label="DoubleCheck Template" value={settings.template_doublecheck} placeholder="Path to DoubleCheck .xlsx template" note="Required for Excel output" onChange={(v) => onChange("template_doublecheck", v)}
+              onBrowse={async () => { const p = await pickXlsxFile(); if (p) onChange("template_doublecheck", p); }} />
+            <SettingsField label="Default Output Folder" value={settings.output_folder} placeholder="e.g. /Users/you/Desktop" note="Pre-fills the output folder on the main screen" onChange={(v) => onChange("output_folder", v)}
+              onBrowse={async () => { const p = await pickFolder(); if (p) onChange("output_folder", p); }} />
+            <SaveBar saved={settingsSaved} onSave={onSave} />
+          </div>
+        )}
+
+        {settingsTab === "diagnostics" && (
+          <div className="rp-settings-body">
+            <p className="rp-settings-desc">Run the Python sidecar probe to verify the bridge and AWS credentials are working.</p>
+            <button className="rp-primary-btn" disabled={bridgeState.running} onClick={onRunProbe}>
+              {bridgeState.running ? "Running…" : "Run Python Bridge Test"}
+            </button>
+            <div className="rp-bridge-log">
+              {bridgeState.lines.length
+                ? bridgeState.lines.map((line, i) => <code key={i}>{line}</code>)
+                : <code>No output yet.</code>}
+            </div>
+            {bridgeState.result && <p className="rp-support-note">{bridgeState.result}</p>}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-function SettingsField({ label, value, onChange, placeholder, note, onBrowse, browseLabel = "Browse…" }) {
+function SettingsField({ label, value, placeholder, note, onChange, onBrowse }) {
   return (
-    <div className="settings-field">
-      <label>
-        <span className="settings-label">{label}</span>
-        {note && <span className="settings-note">{note}</span>}
-        <div className="settings-input-row">
-          <input
-            type="text"
-            value={value}
-            placeholder={placeholder || ""}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          {onBrowse && (
-            <button type="button" className="button secondary" onClick={onBrowse}>{browseLabel}</button>
-          )}
-        </div>
-      </label>
+    <div className="rp-sfield">
+      <label className="rp-slabel">{label}</label>
+      {note && <span className="rp-snote">{note}</span>}
+      <div className="rp-sinput-row">
+        <input type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        {onBrowse && <button className="rp-browse-btn" onClick={onBrowse}>Browse…</button>}
+      </div>
     </div>
   );
 }
 
 function SaveBar({ saved, onSave }) {
   return (
-    <div className="settings-save-bar">
-      <button type="button" className="button primary" onClick={onSave}>
-        {saved ? "Saved ✓" : "Save Settings"}
-      </button>
-      <p className="support-note">Saved to ~/.tax_processor/config.json — shared between Tkinter and Tauri.</p>
+    <div className="rp-save-bar">
+      <button className="rp-primary-btn" onClick={onSave}>{saved ? "Saved ✓" : "Save Settings"}</button>
+      <p className="rp-support-note">Saved to ~/.tax_processor/config.json</p>
     </div>
-  );
-}
-
-function TemplatesPanel({ settings, settingsSaved, onSettingsChange, onSaveSettings }) {
-  return (
-    <div className="tab-panel active settings-placeholder">
-      <p className="eyebrow">Excel Templates</p>
-      <h3>Office workbook templates</h3>
-      <p>These templates are copied and populated for each client packet. Both are required to generate Excel review documents.</p>
-      <div className="settings-fields">
-        <SettingsField
-          label="1040 Template"
-          value={settings.template_1040}
-          onChange={(v) => onSettingsChange("template_1040", v)}
-          placeholder="Path to 1040 .xlsx template"
-          note="Required for Excel output"
-          onBrowse={async () => {
-            const path = await pickXlsxFile();
-            if (path) onSettingsChange("template_1040", path);
-          }}
-        />
-        <SettingsField
-          label="DoubleCheck Template"
-          value={settings.template_doublecheck}
-          onChange={(v) => onSettingsChange("template_doublecheck", v)}
-          placeholder="Path to DoubleCheck .xlsx template"
-          note="Required for Excel output"
-          onBrowse={async () => {
-            const path = await pickXlsxFile();
-            if (path) onSettingsChange("template_doublecheck", path);
-          }}
-        />
-        <SettingsField
-          label="Default Output Folder"
-          value={settings.output_folder}
-          onChange={(v) => onSettingsChange("output_folder", v)}
-          placeholder="e.g. /Users/you/Desktop"
-          note="Pre-fills the output folder on the main screen"
-          onBrowse={async () => {
-            const path = await pickFolder();
-            if (path) onSettingsChange("output_folder", path);
-          }}
-        />
-      </div>
-      <SaveBar saved={settingsSaved} onSave={onSaveSettings} />
-    </div>
-  );
-}
-
-function BedrockPanel({ settings, settingsSaved, onSettingsChange, onSaveSettings }) {
-  return (
-    <div className="tab-panel active settings-placeholder">
-      <p className="eyebrow">AWS / Bedrock</p>
-      <h3>Inference settings</h3>
-      <p>All LLM calls route through AWS Bedrock. Changes take effect on the next packet processed.</p>
-      <div className="settings-fields">
-        <SettingsField
-          label="AWS Region"
-          value={settings.aws_region}
-          onChange={(v) => onSettingsChange("aws_region", v)}
-          placeholder="us-east-1"
-          note="Default: us-east-1"
-        />
-        <SettingsField
-          label="AWS Profile"
-          value={settings.aws_profile}
-          onChange={(v) => onSettingsChange("aws_profile", v)}
-          placeholder="Leave blank to use default credential chain"
-          note="Optional — named profile from ~/.aws/credentials"
-        />
-        <SettingsField
-          label="Bedrock Model ID"
-          value={settings.bedrock_model_id}
-          onChange={(v) => onSettingsChange("bedrock_model_id", v)}
-          placeholder="us.anthropic.claude-sonnet-4-6"
-          note="Default: us.anthropic.claude-sonnet-4-6"
-        />
-      </div>
-      <SaveBar saved={settingsSaved} onSave={onSaveSettings} />
-    </div>
-  );
-}
-
-function BridgePanel({ bridgeState, onRunBridge }) {
-  return (
-    <div className="tab-panel active settings-placeholder bridge-panel">
-      <p className="eyebrow">Diagnostics</p>
-      <h3>Tauri Python bridge spike</h3>
-      <p>
-        This proves the desktop shell can invoke Python and stream progress
-        before we connect the real tax pipeline.
-      </p>
-      <button className="button primary" type="button" disabled={bridgeState.running} onClick={onRunBridge}>
-        {bridgeState.running ? "Running bridge..." : "Run Python Bridge Test"}
-      </button>
-      <div className="bridge-log" aria-label="Python bridge output">
-        {bridgeState.lines.length ? (
-          bridgeState.lines.map((line, index) => <code key={`${line}-${index}`}>{line}</code>)
-        ) : (
-          <code>No bridge output yet.</code>
-        )}
-      </div>
-      {bridgeState.result ? <p className="support-note">{bridgeState.result}</p> : null}
-    </div>
-  );
-}
-
-function TreeRow({ item, onRenameFolder, onToggleFolder }) {
-  return (
-    <div className="tree-row">
-      <span className="drag-handle" aria-hidden="true">⋮⋮</span>
-      <span className={`row-type ${item.type.toLowerCase()}`}>{item.type}</span>
-      <input type="text" value={item.value} onChange={(event) => onRenameFolder(item.id, event.target.value)} />
-      {item.type === "Folder" ? (
-        <label className="mini-toggle"><input type="checkbox" checked={item.create} onChange={(event) => onToggleFolder(item.id, event.target.checked)} /> create</label>
-      ) : (
-        <span className="row-note">{item.note}</span>
-      )}
-    </div>
-  );
-}
-
-function PatternPanel() {
-  return (
-    <aside className="pattern-panel">
-      <p className="eyebrow">Naming and destinations</p>
-      <h3>Patterns staff should not have to remember</h3>
-      <label><span>Client folder pattern</span><input type="text" defaultValue="{last}_{first}_{tax_year}" /></label>
-      <label><span>Renamed PDF pattern</span><input type="text" defaultValue="{form_type}_{payer}_{tax_year}.pdf" /></label>
-      <label><span>1040 workbook pattern</span><input type="text" defaultValue="{client_slug}_1040.xlsx" /></label>
-      <label><span>DoubleCheck workbook pattern</span><input type="text" defaultValue="{client_slug}_DoubleCheck.xlsx" /></label>
-      <div className="destination-rules"><div><span>Renamed PDFs</span><strong>SD/</strong></div><div><span>Excel workbooks</span><strong>Review/</strong></div><div><span>Packet logs</span><strong>Client root + logs/</strong></div></div>
-      <p className="support-note">Internal app diagnostics stay in ~/.tax_processor/logs/app.log.</p>
-    </aside>
   );
 }
